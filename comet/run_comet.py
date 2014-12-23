@@ -14,7 +14,15 @@ import json, re
 import convergence as conv
 import gc
 
-set2scores = dict()
+# Mappings from program arguments to chars passed into C program as flags
+EXACT, DENDRIX, BINOM, BINOM_CO = 'e', 'd', 'b', 'c'
+weight_function_chars = {
+    'exact' : EXACT,
+    'dendrix' : DENDRIX,
+    'binom' : BINOM,
+    'binom-co': BINOM_CO
+    }
+
 
 def parse_args(input_list=None):
     # Parse arguments
@@ -23,55 +31,67 @@ def parse_args(input_list=None):
     args = Args()
     description = 'Runs CoMEt to find the optimal set M  '\
                   'of k genes for the weight function \Phi(M).'
+
     parser = argparse.ArgumentParser(description=description)
-    parser.add_argument('-n', '--name', required=True,
+    
+    parent_parser = argparse.ArgumentParser(add_help=False)
+    parent_parser.add_argument('-n', '--name', required=True,
                         help='Name for output.')
     # mutation data
-    parser.add_argument('-m', '--mutation_matrix', required=True,
+    parent_parser.add_argument('-m', '--mutation_matrix', required=True,
                         help='File name for mutation data.')
-    parser.add_argument('-c', '--cutoff', type=int, default=0, 
+    parent_parser.add_argument('-c', '--cutoff', type=int, default=0, 
                         help='Minimum gene mutation frequency.')
-    parser.add_argument('-p', '--patient_whitelist', default=None,
+    parent_parser.add_argument('-p', '--patient_whitelist', default=None,
                         help='File of patients to be included.')
-    parser.add_argument('-bp', '--patient_blacklist', default=None,
+    parent_parser.add_argument('-bp', '--patient_blacklist', default=None,
                         help='File of patients to be excluded.')
-    parser.add_argument('-g', '--gene_whitelist', default=None,
+    parent_parser.add_argument('-g', '--gene_whitelist', default=None,
                         help='File of genes to be included.')
-    parser.add_argument('-bg', '--gene_blacklist', default=None,
+    parent_parser.add_argument('-bg', '--gene_blacklist', default=None,
                         help='File of genes to be excluded.')
-    # Comet parameters
-    parser.add_argument('-ks', '--gene_set_sizes', nargs="*", type=int, required=True,
-                        help='Gene set sizes (length must be t). This or -k must be set. ')
-    parser.add_argument('-o', '--output_dir', required=True,
+    # output
+    parent_parser.add_argument('-o', '--output_dir', required=True,
                         help='Prefix to output directory.')    
-    parser.add_argument('-q', '--quiet', default=True, action="store_true",
-                        help='Quiet output flag.')
-    parser.add_argument('-N', '--num_iterations', type=int, default=pow(10, 3),
+    
+    subparsers = parser.add_subparsers(help='sub-command help', dest='approach')    
+    
+    parser_pipeline = subparsers.add_parser('pipeline', parents=[parent_parser], help='pipeline help')
+    parser_exhaustive = subparsers.add_parser('exhaustive', parents=[parent_parser], help='exhaustive help')
+    
+    # Comet parameters
+    parser_pipeline.add_argument('-ks', '--gene_set_sizes', nargs="*", type=int, required=True,
+                        help='Gene set sizes (length must be t). This or -k must be set. ')
+    parser_pipeline.add_argument('-N', '--num_iterations', type=int, default=pow(10, 3),
                         help='Number of iterations of MCMC.')
-    parser.add_argument('-NStop', '--n_stop', type=int, default=pow(10, 8),
-                        help='Number of iterations of MCMC to stop the pipeline.')					
-    parser.add_argument('-s', '--step_length', type=int, default=100,
+    parser_pipeline.add_argument('-NStop', '--n_stop', type=int, default=pow(10, 8),
+                        help='Number of iterations of MCMC to stop the pipeline.')                  
+    parser_pipeline.add_argument('-s', '--step_length', type=int, default=100,
                         help='Number of iterations between samples.')
-    parser.add_argument('-w', '--weight_func', default='exact', help='Which test to perform.',
-                        choices=['binom', 'exact', 'dendrix'])
-    parser.add_argument('-init', '--initial_soln', nargs="*", 
+    parser_pipeline.add_argument('-init', '--initial_soln', nargs="*", 
                         help='Initial solution to use.')
     # new parameters 
-    parser.add_argument('-acc', '--accelerator', default=1, type=int,
+    parser_pipeline.add_argument('-acc', '--accelerator', default=1, type=int,
                         help='accelerating factor for target weight')
-    parser.add_argument('-sub', '--subtype', default=None, help='File with a list of subtype for performing subtype-comet.')
-    parser.add_argument('-r', '--num_initial', default=1, type=int,
+    parser_pipeline.add_argument('-sub', '--subtype', default=None, help='File with a list of subtype for performing subtype-comet.')
+    parser_pipeline.add_argument('-r', '--num_initial', default=1, type=int,
                         help='number of different initial start of MCMC.')
-    parser.add_argument('--exact_cut', default=0.001, type=float, 
+    parser_pipeline.add_argument('--exact_cut', default=0.001, type=float, 
                         help='Maximum accumulated table prob. to stop exact test.')    
-    parser.add_argument('--binom_cut', type=float, default=0.005,
+    parser_pipeline.add_argument('--binom_cut', type=float, default=0.005,
                         help='Minumum pval cutoff for CoMEt to perform binom test.')
-    parser.add_argument('-nt', '--nt', default=10, type=int, 
+    parser_pipeline.add_argument('-nt', '--nt', default=10, type=int, 
                         help='Maximum co-occurrence cufoff to perform exact test.')
-    parser.add_argument('-tv', '--total_distance_cutoff', type=float, default=0.005,
+    parser_pipeline.add_argument('-tv', '--total_distance_cutoff', type=float, default=0.005,
                         help='stop condition of convergence (total distance).')
-    parser.add_argument('--ran_genesets', default=None, 
-                        help='input file with lists of pre-run results.')
+    
+    
+    # Exhaustive parameters
+    parser_exhaustive.add_argument('-k', '--gene_set_size', type=int, required=True,
+                        help='Gene set size.')
+    parser_exhaustive.add_argument('-w', '--weight_func', default='exact', help='Which test to perform.',
+                        choices=['binom', 'binom-co', 'exact', 'dendrix'])
+    
     
     if input_list: parser.parse_args(input_list, namespace=args)
     else: parser.parse_args(namespace=args)
@@ -126,14 +146,14 @@ def comet(mutation_data, n, t, ks, num_iters, step_len,
     
     return results
 
-def iter_num (prefix, num_iterations, ks, weight_func, name, acc):
+def iter_num (prefix, num_iterations, ks, name):
 
 	if num_iterations >= 1000000000: iterations = "%sB" % (num_iterations / 1000000000)
 	elif num_iterations >= 1000000: iterations = "%sM" % (num_iterations / 1000000)
 	elif num_iterations >= 1000: iterations = "%sK" % (num_iterations / 1000)
 	else: iterations = "%s" % num_iterations
 	
-	prefix += ".k%s.%s.%s.%s.%s" % ("".join(map(str, ks)), weight_func, iterations, acc)
+	prefix += ".k%s.%s.%s" % ("".join(map(str, ks)), 'pipeline', iterations)
 	return prefix
 
 def call_multidendrix(mutation_data, k, t):
@@ -146,23 +166,11 @@ def call_multidendrix(mutation_data, k, t):
 
     return multiset
 
-def getRanSets(infile):
-    
-    base_i = 3
-    matchObj = re.match( r'.+\.k(\d+)\..+?', infile)
-    for l in open(infile):
-        if not l.startswith("#"):
-            v = l.rstrip().split("\t")
-            j = 0
-            for i in range(len(matchObj.group(1))):
-                set2scores[v[base_i + j]] = float(v[base_i + j + 1])
-                #print v[base_i + j], v[base_i + j + 1]
-                j += 3
 
 def printParameters(args, ks, finaltv):
     opts = vars(args)
     opts['total distance'] = finaltv
-    prefix = iter_num(args.output_dir + args.name + '.para', args.num_iterations, ks, args.weight_func, args.name, args.accelerator)
+    prefix = iter_num(args.output_dir + args.name + '.para', args.num_iterations, ks, args.name)
     with open(prefix + '.json', 'w') as outfile:
         json.dump(opts, outfile)
 
@@ -178,30 +186,21 @@ def merge_results(conv_results):
 
     return total
 
-def run( args ):
-	# read mutation data
-    include = white_and_blacklisting(args.patient_whitelist,
-            args.patient_blacklist, args.gene_whitelist, args.gene_blacklist)
-    gene2include, patient2include = include
+def pipeline_run( mutation_data, args):
 
-    mutation_data = load_mutation_data_w_cutoff(args.mutation_matrix,
-            patient2include, gene2include, args.cutoff)
     m, n, genes, patients, mutation2patients, patient2mutations = mutation_data
-    
+    # read subtype information if args.subtype is specified
     if args.subtype:
         sub_set = [l.rstrip() for l in open(args.subtype)]
+        print '- %s subtype information: %s subtypes' % (args.name, len(sub_set))
     else:
         sub_set = list()
-
-    
-    print '- %s mutation data: %s genes x %s patients' % (args.name, m, n)
 
     r_c   = args.num_initial 
     t_c   = 1
 
     t     = len(args.gene_set_sizes) # number of pathways
     ks    = args.gene_set_sizes      # size of each pathway
-    w     = args.weight_func         # weight function 
     N     = args.num_iterations      # number of iteration 
     N_inc = 1.5                 # increamental for non-converged chain
     s     = args.step_length         # step
@@ -213,23 +212,19 @@ def run( args ):
     # Precompute factorials
     C.precompute_factorials(max(m, n))
     
-    # stored the score of pre-computed collections
-    if args.ran_genesets: 
-        getRanSets(args.ran_genesets)
-
     # num_initial > 1, perform convergence pipeline, otherwise, perform one run only
     if args.num_initial > 1: 
         # create good collection from multidendrix
         pair_init = list()
         if not args.subtype and ks.count(ks[0])==len(ks):        
             md_init = call_multidendrix(mutation_data, ks, t)
-            pair_init.append(list(md_init))	       
+            pair_init.append(list(md_init))        
             t_c = 1    
             r_c = r_c - 1 
         else:
             t_c = 0
-			
-        while 1:
+            
+        while 1: 
             conv_results = list()            
             i = 0
 
@@ -269,8 +264,8 @@ def run( args ):
 
     C.free_factorials()
     
-    # output Comet results into .tsv
-    collections = sorted(results.keys(), key=lambda S: results[S]["total_weight"], reverse=True)    		    
+    # output CoMEt MCMC results into .tsv
+    collections = sorted(results.keys(), key=lambda S: results[S]["total_weight"], reverse=True)                
     if args.output_dir:   
         # Output only sets, probs, and freqs as TSV
         header = "#Freq\tTotal Weight\tTarget Weight\t"
@@ -283,7 +278,85 @@ def run( args ):
                 row += [", ".join(sorted(d["genes"])), d["prob"], d["num_tbls"] ]
             tbl.append("\t".join(map(str, row)))
                 
-        open("%s.tsv" % iter_num(args.output_dir + args.name + '.sum', N*(run_num), ks, w, args.name, args.accelerator), "w").write( "\n".join(tbl) )
+        open("%s.tsv" % iter_num(args.output_dir + args.name + '.sum', N*(run_num), ks, args.name), "w").write( "\n".join(tbl) )
+
+def exhaustive_run(mutation_data, args):
+    # exhaustive
+    m, n, genes, patients, mutation2patients, patient2mutations = mutation_data
+    iP2G, iG2P, iG2numMuts, g2index, index2g = convert_mutation_data_for_c(genes, patients, mutation2patients,
+                                                         patient2mutations)
+    k = args.gene_set_size
+    pvalthresh = 1.1
+    w = args.weight_func
+    C.precompute_factorials(max(m, n))
+    C.set_weight(weight_function_chars[w])
+
+    res = C.exhaustive(k, m, n, iP2G, iG2numMuts, pvalthresh) 
+
+    solns, weights, tables, probs = res
+
+    res = zip(solns, weights, tables, probs)
+    res.sort(key=lambda arr: arr[1], reverse=True) # sort by weight decreasing
+    solns   = [ sorted([genes[g] for g in geneset]) for geneset, w, t, p in res]
+    weights = [ w for g, w, t, p in res]
+    tables  = [ t for g, w, t, p in res]
+    probs   = [ p for g, w, t, p in res]
+
+
+    output_all((solns, weights, tables, probs), args)
+
+
+def output_all(res, args):
+    '''
+    Ouputs results of dendrix/dendrix++ to a tsv file.
+
+    Arguments:
+    res - a tuple of 5 lists corresponding to gene sets, weights, tables, p-values
+    args - the command line arguments to this program
+    and frequencies, the results of either the exhaustive or MCMC algorithms
+
+    Outputs the data to a tsv named <outfile_name>
+
+    '''
+    # Parse result into shorter var handles
+    solns, weights, tables, probs = res
+
+    # Create an output prefix
+    prefix = args.output_dir + "/"
+    
+    prefix += "%s.k%s.%s.exhaust" % (args.name.lower(), args.gene_set_size, args.weight_func)
+    
+    # Remove sets with a negative weight
+    indices = [i for i in range(len(probs)) if probs[i] != -1]
+    solns   = [solns[i] for i in indices]
+    weights = [weights[i] for i in indices]
+    tables  = [tables[i] for i in indices]
+    probs   = [probs[i] for i in indices]
+ 
+    # Output only sets, probs, and freqs as TSV
+    open("%s.tsv" % prefix, "w").write( "#Gene set\tP-value\tFreq\tWeight\n" +
+        "\n".join(["%s\t%s\t%s" % (", ".join(s), p, w)
+                   for s, p, w in zip(solns, probs, weights)])
+    )
+ 
+
+def run( args ):
+	# read mutation data
+    include = white_and_blacklisting(args.patient_whitelist,
+            args.patient_blacklist, args.gene_whitelist, args.gene_blacklist)
+    gene2include, patient2include = include
+
+    mutation_data = load_mutation_data_w_cutoff(args.mutation_matrix,
+            patient2include, gene2include, args.cutoff)
+    m, n, genes, patients, mutation2patients, patient2mutations = mutation_data
+    print '- %s mutation data: %s genes x %s patients' % (args.name, m, n)
+
+    if args.approach == 'pipeline':
+        pipeline_run( mutation_data, args)
+    else:
+        exhaustive_run( mutation_data, args)
+    
+    
 
        
 if __name__ == "__main__": run( parse_args() )    
