@@ -2,8 +2,8 @@
 import sys, os
 import itertools
 
-# Import multi-dendrix++
-sys.path.insert(1, 'build/lib.macosx-10.10-intel-2.7/')
+# Import c-library
+sys.path.insert(1,'build/lib.macosx-10.10-intel-2.7/')
 import comet as C
 from math import log10, exp, factorial, log
 import math

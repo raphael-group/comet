@@ -1,7 +1,6 @@
 #!/usr/bin/python
 
 import sys, os
-
 sys.path.insert(1, 'build/lib.macosx-10.10-intel-2.7/')
 import comet as C    
 from math import log10, exp, factorial, log
