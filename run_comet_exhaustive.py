@@ -69,13 +69,6 @@ def run( args ):
     tables  = [ t for g, w, t, p in res]
     probs   = [ p for g, w, t, p in res]
 
-    # Remove sets with a negative weight
-    indices = [i for i in range(len(probs)) if probs[i] != -1]
-    solns   = [solns[i] for i in indices]
-    weights = [weights[i] for i in indices]
-    tables  = [tables[i] for i in indices]
-    probs   = [probs[i] for i in indices]
- 
     # Output only sets, probs, and freqs as TSV
     with open("%s-k%s-%s-exhaustive.tsv" % (args.output_prefix, k, wf), "w") as outfile:
         output = [ "\t".join([ ", ".join(s), str(p), str(w)])
