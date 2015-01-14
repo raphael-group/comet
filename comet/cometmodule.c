@@ -243,8 +243,8 @@ PyMethodDef DppMethods[] = {
     {NULL, NULL, 0, NULL},
 };
 
-PyMODINIT_FUNC initcomet(void) {
-    PyObject *m = Py_InitModule("comet", DppMethods);
+PyMODINIT_FUNC initcComet(void) {
+    PyObject *m = Py_InitModule("cComet", DppMethods);
     if (m == NULL) {
         return;
     }
