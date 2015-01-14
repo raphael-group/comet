@@ -4,7 +4,12 @@
 import sys, os, json, re, comet as C
 from math import exp
 
-setToScores = dict()
+# Try loading Multi-Dendrix
+try:
+    import multi_dendrix as multi_dendrix
+except ImportError:
+    sys.stderr.write("Warning: The Multi-Dendrix Python module could not"\
+                     " be found. Using only random initializations...\n")
 
 def get_parser():
     # Parse arguments
@@ -120,7 +125,6 @@ def iter_num (prefix, numIters, ks, weightFunc, acc):
 	return prefix
 
 def call_multidendrix(mutations, k, t):
-    import multi_dendrix as multi_dendrix
     alpha, delta, lmbda = 1.0, 0, 1 # default of multidendrix
     geneSetsWithWeights = multi_dendrix.ILP( mutations, t, k, k, alpha, delta, lmbda)
     multiset = set()
@@ -129,8 +133,7 @@ def call_multidendrix(mutations, k, t):
     return multiset
 
 def getRanSets(infile):
-    
-    base_i = 3
+    baseI = 3
     matchObj = re.match( r'.+\.k(\d+)\..+?', infile)
     for l in open(infile):
         if not l.startswith("#"):
@@ -161,7 +164,7 @@ def merge_results(convResults):
     return total
 
 def run( args ):
-    # Parse the arguments into shorter variable hadnles
+    # Parse the arguments into shorter variable handles
     mutationMatrix = args.mutation_matrix
     geneFile = args.gene_file
     patientFile = args.patient_file
