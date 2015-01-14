@@ -1,17 +1,14 @@
+#!/usr/bin/python
 
+# Load required modules
 import sys, os
 import itertools
-
-# Import multi-dendrix++
-sys.path.insert(1, 'build/lib.macosx-10.10-intel-2.7/')
 import comet as C
 from math import log10, exp, factorial, log
 import math
 from time import time
 import scipy as sp
-from mutation_data import * 
 import json, re
-import convergence as conv
 import gc
 
 set2scores = dict()

@@ -1,13 +1,11 @@
 #!/usr/bin/python
 
+# Load required modules
 import sys, os
-
-sys.path.insert(1, 'build/lib.macosx-10.10-intel-2.7/')
-import comet as C    
+import comet
 from math import log10, exp, factorial, log
 from time import time
 from scipy.stats import binom
-from mutation_data import * 
 import json
 
 # Mappings from program arguments to chars passed into C program as flags
