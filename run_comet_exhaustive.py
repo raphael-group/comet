@@ -30,22 +30,22 @@ def get_parser():
                         help='Gene set size.')
     parser.add_argument('-w', '--weight_func', default='exact',
                         help='Weight function to use.',
-                        choices=C.weight_function_chars.keys())
+                        choices=C.weightFunctionChars.keys())
     return parser
 
 
 def run( args ):
     # Parse the arguments into shorter variable hadnles
-    mutation_matrix = args.mutation_matrix
-    gene_file = args.gene_file
-    patient_file = args.patient_file
-    min_freq = args.min_freq
+    mutationMatrix = args.mutation_matrix
+    geneFile = args.gene_file
+    patientFile = args.patient_file
+    minFreq = args.min_freq
     k = args.gene_set_size
-    pvalthresh = 1.1
+    pvalThresh = 1.1
     wf = args.weight_func
 
     # Load the mutation data
-    mutations = C.load_mutation_data(mutation_matrix, patient_file, gene_file, min_freq)
+    mutations = C.load_mutation_data(mutationMatrix, patientFile, geneFile, minFreq)
     m, n = mutations[0], mutations[1]
     if args.verbose:
         print '- Mutation data: %s genes x %s patients' % (m, n)
@@ -56,8 +56,8 @@ def run( args ):
     genes = sorted(geneToIndex.keys(), key=lambda g: geneToIndex[g])
 
     C.precompute_factorials(max(m, n))
-    C.set_weight(C.weight_function_chars[wf])
-    results = C.exhaustive(k, m, n, iPatientToGenes, geneToNumCases, pvalthresh)
+    C.set_weight(C.weightFunctionChars[wf])
+    results = C.exhaustive(k, m, n, iPatientToGenes, geneToNumCases, pvalThresh)
     C.free_factorials()
 
     # Parse the output
@@ -78,7 +78,8 @@ def run( args ):
  
     # Output only sets, probs, and freqs as TSV
     with open("%s-k%s-%s-exhaustive.tsv" % (args.output_prefix, k, wf), "w") as outfile:
-        output = [ "\t".join([ ", ".join(s), str(p), str(w)]) for s, p, w in zip(solns, probs, weights)]
+        output = [ "\t".join([ ", ".join(s), str(p), str(w)])
+                   for s, p, w in zip(solns, probs, weights)]
         output.insert(0, "#Gene set\tP-value\tFreq\tWeight")
         outfile.write( "\n".join(output) )
 

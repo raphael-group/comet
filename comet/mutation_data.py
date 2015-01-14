@@ -2,7 +2,7 @@
 
 ###############################################################################
 # Functions for loading mutation data
-def load_mutation_data(filename, patient_file=None, gene_file=None, min_freq=0):
+def load_mutation_data(filename, patientFile=None, geneFile=None, minFreq=0):
     """Loads the mutation data in the given file. 
 
     :type filename: string
@@ -22,14 +22,14 @@ def load_mutation_data(filename, patient_file=None, gene_file=None, min_freq=0):
       * **patientToGenes** (*dictionary*) - mapping of patients to the genes they have mutated.
     """
     # Load the whitelists (if applicable)
-    if patient_file:
-        with open(patient_file) as f:
+    if patientFile:
+        with open(patientFile) as f:
             patients = set( l.rstrip().split()[0] for l in f if not l.startswith("#") )
     else:
         patients = None
 
-    if gene_file:
-        with open(gene_file) as f:
+    if geneFile:
+        with open(geneFile) as f:
             genes = set( l.rstrip().split()[0] for l in f if not l.startswith("#") )
 
     # Parse the mutation matrix
@@ -49,8 +49,8 @@ def load_mutation_data(filename, patient_file=None, gene_file=None, min_freq=0):
                     geneToCases[gene].add(patient)
 
     # Remove genes with fewer than min_freq mutations
-    to_remove = [ g for g in genes if len(geneToCases[g]) < min_freq ]
-    for g in to_remove:
+    toRemove = [ g for g in genes if len(geneToCases[g]) < minFreq ]
+    for g in toRemove:
         for p in geneToCases[g]:
             patientToGenes[p].remove(g)
         del geneToCases[g]

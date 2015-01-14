@@ -4,7 +4,7 @@
 import sys, os, json, re, comet as C
 from math import exp
 
-set2scores = dict()
+setToScores = dict()
 
 def get_parser():
     # Parse arguments
@@ -38,7 +38,7 @@ def get_parser():
     parser.add_argument('-s', '--step_length', type=int, default=100,
                         help='Number of iterations between samples.')
     parser.add_argument('-w', '--weight_func', default='exact', help='Which test to perform.',
-                        choices=C.weight_function_chars.keys())
+                        choices=C.weightFunctionChars.keys())
     parser.add_argument('-init', '--initial_soln', nargs="*", 
                         help='Initial solution to use.')
     parser.add_argument('-acc', '--accelerator', default=1, type=int,
@@ -59,35 +59,35 @@ def get_parser():
     return parser
 
 
-def convert_solns(index2gene, solns):
-    new_solns = []
+def convert_solns(indexToGene, solns):
+    newSolns = []
     for arr in solns:
         arr.sort(key=lambda M: M[-2], reverse=True)
-        S = tuple( frozenset([index2gene[g] for g in M[:-2] ]) for M in arr )
+        S = tuple( frozenset([indexToGene[g] for g in M[:-2] ]) for M in arr )
         W = [ M[-2] for M in arr ]
         F = [ M[-1] for M in arr ]
-        new_solns.append( (S, W, F) )
+        newSolns.append( (S, W, F) )
 
-    return new_solns
+    return newSolns
 
-def comet(mutations, n, t, ks, num_iters, step_len,
-          initial_soln, amp, subt, nt, hybrid_pvalthreshold, pvalthresh, verbose):    
+def comet(mutations, n, t, ks, numIters, stepLen, initialSoln, 
+          amp, subt, nt, hybridPvalThreshold, pvalThresh, verbose):    
     # Convert mutation data to C-ready format
     if subt: mutations = mutations + (subt)
     cMutations = C.convert_mutations_to_C_format(*mutations)
     iPatientToGenes, iGeneToCases, geneToNumCases, geneToIndex, indexToGene = cMutations
-    initial_soln_index = [gene2index[g] for g in initial_soln]
+    initialSolnIndex = [gene2index[g] for g in initialSoln]
     solns = C.comet(t, mutations[0], mutations[1], iPatientToGenes, geneToNumCases,
-                    ks, num_iters, step_len, amp, nt, hybrid_pvalthreshold,
-                    initial_soln_index, len(subt), pvalthresh, verbose)
+                    ks, numIters, stepLen, amp, nt, hybridPvalThreshold,
+                    initialSolnIndex, len(subt), pvalThresh, verbose)
 
     # Collate the results and sort them descending by sampling frequency    
-    solns_w_weights = convert_solns( indexToGene, solns )  
+    solnsWithWeights = convert_solns( indexToGene, solns )  
     def collection_key(collection):
         return " ".join(sorted([",".join(sorted(M)) for M in collection]))
 
     results = dict()
-    for collection, Ws, Cs in solns_w_weights:
+    for collection, Ws, Cs in solnsWithWeights:
         
         key = collection_key(collection)
         if key in results: results[key]["freq"] += 1
@@ -100,33 +100,32 @@ def comet(mutations, n, t, ks, num_iters, step_len,
                 P = exp(-W)
                 sets.append( dict(genes=M, W=W, num_tbls=F, prob=P) )
 
-            total_weight  = sum([ S["W"] for S in sets ])
-            target_weight = exp( total_weight ) if total_weight < 700 else 1e1000
+            totalWeight  = sum([ S["W"] for S in sets ])
+            targetWeight = exp( totalWeight ) if totalWeight < 700 else 1e1000
 
-            results[key] = dict(freq=1, sets=sets, total_weight=total_weight,
-                                target_weight=target_weight)
+            results[key] = dict(freq=1, sets=sets, total_weight=totalWeight,
+                                target_weight=targetWeight)
         
     
     return results
 
-def iter_num (prefix, num_iterations, ks, weight_func, acc):
+def iter_num (prefix, numIters, ks, weightFunc, acc):
 
-	if num_iterations >= 1e9: iterations = "%sB" % (num_iterations / 1e9)
-	elif num_iterations >= 1e6: iterations = "%sM" % (num_iterations / 1e6)
-	elif num_iterations >= 1e3: iterations = "%sK" % (num_iterations / 1e3)
-	else: iterations = "%s" % num_iterations
+	if numIters >= 1e9: iterations = "%sB" % (numIters / 1e9)
+	elif numIters >= 1e6: iterations = "%sM" % (numIters / 1e6)
+	elif numIters >= 1e3: iterations = "%sK" % (numIters / 1e3)
+	else: iterations = "%s" % numIters
 	
-	prefix += ".k%s.%s.%s.%s" % ("".join(map(str, ks)), weight_func, iterations, acc)
+	prefix += ".k%s.%s.%s.%s" % ("".join(map(str, ks)), weightFunc, iterations, acc)
 	return prefix
 
-def call_multidendrix(mutation_data, k, t):
+def call_multidendrix(mutations, k, t):
     import multi_dendrix as multi_dendrix
     alpha, delta, lmbda = 1.0, 0, 1 # default of multidendrix
-    gene_sets_w_weights = multi_dendrix.ILP( mutation_data, t, k, k, alpha, delta, lmbda)	
+    geneSetsWithWeights = multi_dendrix.ILP( mutations, t, k, k, alpha, delta, lmbda)
     multiset = set()
-    for gene_set, W in gene_sets_w_weights:
-        multiset.update(gene_set)
-
+    for geneSet, W in geneSetsWithWeights:
+        multiset.update(geneSet)
     return multiset
 
 def getRanSets(infile):
@@ -138,7 +137,7 @@ def getRanSets(infile):
             v = l.rstrip().split("\t")
             j = 0
             for i in range(len(matchObj.group(1))):
-                set2scores[v[base_i + j]] = float(v[base_i + j + 1])
+                setToScores[v[baseI + j]] = float(v[baseI + j + 1])
                 #print v[base_i + j], v[base_i + j + 1]
                 j += 3
 
@@ -150,9 +149,9 @@ def printParameters(args, ks, finaltv):
         json.dump(opts, outfile)
 
 
-def merge_results(conv_results):
+def merge_results(convResults):
     total = dict()    
-    for results in conv_results:
+    for results in convResults:
         for key in results.keys():
             if key in total: 
                 total[key]["freq"] += results[key]["freq"]
@@ -163,32 +162,32 @@ def merge_results(conv_results):
 
 def run( args ):
     # Parse the arguments into shorter variable hadnles
-    mutation_matrix = args.mutation_matrix
-    gene_file = args.gene_file
-    patient_file = args.patient_file
-    min_freq = args.min_freq
-    r_c   = args.num_initial 
+    mutationMatrix = args.mutation_matrix
+    geneFile = args.gene_file
+    patientFile = args.patient_file
+    minFreq = args.min_freq
+    rc    = args.num_initial 
     t     = len(args.gene_set_sizes) # number of pathways
     ks    = args.gene_set_sizes      # size of each pathway
     w     = args.weight_func         # weight function 
     N     = args.num_iterations      # number of iteration 
     s     = args.step_length         # step
-    N_stop = args.n_stop
+    NStop = args.n_stop
     acc = args.accelerator
     nt = args.nt
-    hybrid_cutoff = args.binom_cut
-    N_inc = 1.5                 # increamental for non-converged chain
-    t_c   = 1
+    hybridCutoff = args.binom_cut
+    NInc = 1.5                 # increamental for non-converged chain
+    tc   = 1
 
 	# Load the mutation data
-    mutations = C.load_mutation_data(mutation_matrix, patient_file, gene_file, min_freq)
-    m, n, genes, patients, mutation2patients, patient2mutations = mutations
+    mutations = C.load_mutation_data(mutationMatrix, patientFile, geneFile, minFreq)
+    m, n, genes, patients, geneToCases, patientToGenes = mutations
     
     if args.subtype:
         with open(open(args.subtype)) as f:
-            sub_set = [ l.rstrip() for l in f ]
+            subSet = [ l.rstrip() for l in f ]
     else:
-        sub_set = list()
+        subSet = list()
 
     if args.verbose:
         print 'Mutation data: %s genes x %s patients' % (m, n)
@@ -205,46 +204,46 @@ def run( args ):
         # create good collection from multidendrix
         pair_init = list()
         if not args.subtype and ks.count(ks[0])==len(ks):        
-            md_init = call_multidendrix(mutation_data, ks, t)
-            pair_init.append(list(md_init))	       
-            t_c = 1    
-            r_c = r_c - 1 
+            mdInit = call_multidendrix(mutations, ks, t)
+            pair_init.append(list(mdInit))	       
+            tc = 1    
+            rc = rc - 1 
         else:
-            t_c = 0
+            tc = 0
 			
         while 1:
-            conv_results = list()            
+            convResults = list()            
             i = 0
 
-            for i in range(t_c):                
+            for i in range(tc):                
                 init = pair_init[i]
-                outresults = comet(mutations, n, t, ks, N, s, init, acc, sub_set, nt, hybrid_cutoff, args.exact_cut, True)
+                outresults = comet(mutations, n, t, ks, N, s, init, acc, sub_set, nt, hybridCutoff, args.exact_cut, True)
                 conv_results.append(outresults)
 
-            for j in range(i, r_c): # random initials            
+            for j in range(i, rc): # random initials            
                 init = list()            
-                outresults = comet(mutations, n, t, ks, N, s, init, acc, sub_set, nt, hybrid_cutoff, args.exact_cut, True)
+                outresults = comet(mutations, n, t, ks, N, s, init, acc, sub_set, nt, hybridCutoff, args.exact_cut, True)
                 conv_results.append(outresults)
             
             final_tv = conv.discrete_convergence(conv_results, int(N/s))
             print final_tv, N
                 
-            newN = int(N*N_inc)
-            if newN > N_stop or final_tv < args.total_distance_cutoff: #iterations < 1B and GR factor is < 0.005
+            newN = int(N*NInc)
+            if newN > NStop or finalTv < args.total_distance_cutoff: #iterations < 1B and GR factor is < 0.005
                 break        
             N = newN
-            del conv_results[:]            
+            del convResults[:]            
         
-        run_num = len(conv_results)   
-        results = merge_results(conv_results)
-        printParameters(args, ks, final_tv) # store and output parameters into .json
+        runNum = len(convResults)   
+        results = merge_results(convResults)
+        printParameters(args, ks, finalTv) # store and output parameters into .json
         
 
     else:
         init = list()            
-        outresults = comet(mutations, n, t, ks, N, s, init, acc, sub_set, nt, hybrid_cutoff, args.exact_cut, True)
+        outresults = comet(mutations, n, t, ks, N, s, init, acc, subSet, nt, hybridCutoff, args.exact_cut, True)
         results = outresults
-        run_num = 1
+        runNum = 1
         printParameters(args, ks, 1) 
 
     C.free_factorials()
@@ -261,8 +260,7 @@ def run( args ):
             row += [", ".join(sorted(d["genes"])), d["prob"], d["num_tbls"] ]
         tbl.append("\t".join(map(str, row)))
 
-    output_file = "%s.tsv" % iter_num(args.output_prefix + '.sum', N*(run_num), ks, w, args.accelerator)
-    with open(output_file, "w") as outfile: outfile.write( "\n".join(tbl) )
+    outputFile = "%s.tsv" % iter_num(args.output_prefix + '.sum', N*(runNum), ks, w, args.accelerator)
+    with open(outputFile, "w") as outfile: outfile.write( "\n".join(tbl) )
 
-       
 if __name__ == "__main__": run( get_parser().parse_args(sys.argv[1:]) )    
