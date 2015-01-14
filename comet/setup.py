@@ -20,7 +20,6 @@ from distutils.core import setup, Extension
 module1 = Extension('comet',
         include_dirs=[numpy.get_include()],
         libraries = ['glib-2.0'],
-        #library_dirs = glib_libs,
         extra_compile_args = compile_args,
         sources = ['utils/cephes/polevl.c','utils/cephes/gamma.c', 'utils/cephes/incbet.c', 'weights.c', 'utils/utilities.c',
                    'mutation_data.c', 'cometmodule.c', 'comet_mcmc.c', 'comet_exhaustive.c'],
