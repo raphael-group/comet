@@ -265,11 +265,12 @@ PyObject *py_comet(PyObject *self, PyObject *args){
 /******************************************************************************
 * Export functions to python
 ******************************************************************************/
-PyMethodDef DppMethods[] = {
+PyMethodDef CoMEtMethods[] = {
     {"exhaustive", py_exhaustive, METH_VARARGS, ""},
     {"set_weight", py_set_weight, METH_VARARGS, ""},
     {"exact_test", py_exact_test, METH_VARARGS, "Computes Dendrix++ exact test."},
     {"binom_test", py_binomial_test, METH_VARARGS, "Computes Dendrix++ exact test."},    
+    //{"comet_score", py_comet_score, METH_VARARGS, "Computes comet score from three tests."},    
     {"comet", py_comet, METH_VARARGS, "Computes Dendrix++ in MCMC."},    
     {"precompute_factorials", py_precompute_factorials, METH_VARARGS, "Precomputes factorials for 0...N"},
     {"load_precomputed_scores", py_load_precomputed_scores, METH_VARARGS, "Loading precomputed scores from file"},
@@ -278,7 +279,7 @@ PyMethodDef DppMethods[] = {
 };
 
 PyMODINIT_FUNC initcComet(void) {
-    PyObject *m = Py_InitModule("cComet", DppMethods);
+    PyObject *m = Py_InitModule("cComet", CoMEtMethods);
     if (m == NULL) {
         return;
     }

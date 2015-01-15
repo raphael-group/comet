@@ -115,6 +115,9 @@ double comet_binomial_test(int k, int N, int *tbl, double pvalthresh);
 double comet_binomial_co_test(int k, int N, int *tbl, double pvalthresh);
 double comet_permutation_test(int k, int num_permutation, int num_patients, int *gene_set, int *freq, int *tbl);
 double binomial_cdf(int obs, int num_trials, double p);
+void comet_phi(int *genes, int k, int n, mutation_data_t *A, int *ctbl, int** kelem, double *score, int *func
+                , int co_cutoff, int permutation_iteration
+                , double binom_pvalthreshold, double pvalthresh);
 
 double dendrix(int *ctbl, int k);
 
