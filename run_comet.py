@@ -44,8 +44,6 @@ def get_parser():
                         help='Number of iterations of MCMC to stop the pipeline.')					
     parser.add_argument('-s', '--step_length', type=int, default=100,
                         help='Number of iterations between samples.')
-    parser.add_argument('-w', '--weight_func', default='exact', help='Which test to perform.',
-                        choices=C.weightFunctionChars.keys())
     parser.add_argument('-init', '--initial_soln', nargs="*", 
                         help='Initial solution to use.')
     parser.add_argument('-acc', '--accelerator', default=1, type=int,
@@ -116,14 +114,14 @@ def comet(mutations, n, t, ks, numIters, stepLen, initialSoln,
     
     return results
 
-def iter_num (prefix, numIters, ks, weightFunc, acc):
+def iter_num (prefix, numIters, ks, acc):
 
 	if numIters >= 1e9: iterations = "%sB" % (numIters / 1e9)
 	elif numIters >= 1e6: iterations = "%sM" % (numIters / 1e6)
 	elif numIters >= 1e3: iterations = "%sK" % (numIters / 1e3)
 	else: iterations = "%s" % numIters
 	
-	prefix += ".k%s.%s.%s.%s" % ("".join(map(str, ks)), weightFunc, iterations, acc)
+	prefix += ".k%s.%s.%s" % ("".join(map(str, ks)), iterations, acc)
 	return prefix
 
 def call_multidendrix(mutations, k, t):
@@ -149,7 +147,7 @@ def getRanSets(infile):
 def printParameters(args, ks, finaltv):
     opts = vars(args)
     opts['total distance'] = finaltv
-    prefix = iter_num(args.output_prefix + '.para', args.num_iterations, ks, args.weight_func, args.accelerator)
+    prefix = iter_num(args.output_prefix + '.para', args.num_iterations, ks, args.accelerator)
     with open(prefix + '.json', 'w') as outfile:
         json.dump(opts, outfile)
 
@@ -174,7 +172,6 @@ def run( args ):
     rc    = args.num_initial 
     t     = len(args.gene_set_sizes) # number of pathways
     ks    = args.gene_set_sizes      # size of each pathway
-    w     = args.weight_func         # weight function 
     N     = args.num_iterations      # number of iteration 
     s     = args.step_length         # step
     NStop = args.n_stop
@@ -266,7 +263,7 @@ def run( args ):
             row += [", ".join(sorted(d["genes"])), d["prob"], d["num_tbls"] ]
         tbl.append("\t".join(map(str, row)))
 
-    outputFile = "%s.tsv" % iter_num(args.output_prefix + '.sum', N*(runNum), ks, w, args.accelerator)
+    outputFile = "%s.tsv" % iter_num(args.output_prefix + '.sum', N*(runNum), ks, args.accelerator)
     with open(outputFile, "w") as outfile: outfile.write( "\n".join(tbl) )
 
     return [ (S, results[S]["freq"], results[S]["total_weight"]) for S in collections ]
