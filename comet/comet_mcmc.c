@@ -3,26 +3,11 @@
 #include <time.h>
 #include <stdlib.h>
 #include <stdbool.h>
-#include "utils/uthash.h"
 
 #include "cometmodule.h"
 
 /*****************************************************************************/
 /* Computing the weight */
-// Structs for the hash
-typedef struct{
-    int genes[10];
-} geneset_t;
-
-typedef struct {
-    geneset_t id; /* REQUIRED: the key */
-    double weight;
-    int function;
-    UT_hash_handle hh; /* REQUIRED: makes this structure hashable */
-} weight_t;
-
-// Global store of the weights of seen gene sets
-weight_t *weightHash = NULL;
 int lookups = 0;
 int calculations = 0;
 double pvalthresh = 0.001;
@@ -85,15 +70,6 @@ void W(int *genes, int k, int n, mutation_data_t *A, int *ctbl, int** kelem, dou
     *func = 1;
   }
   
-}
-
-// Sort a pair of integers in ascending order
-int ascending(const void * elem1, const void * elem2){
-    int f = *((int*)elem1);
-    int s = *((int*)elem2);
-    if (f > s) return  1;
-    if (f < s) return -1;
-    return 0;
 }
 
 

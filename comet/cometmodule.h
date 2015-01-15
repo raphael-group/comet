@@ -8,6 +8,8 @@
 #include <string.h>
 #include <stdio.h>
 
+#include "utils/uthash.h"
+
 /* Keeps track of all fields during MCMC */
 typedef struct mutation_data {
 //    double (*weight_func) (struct mutation_data *self);
@@ -38,6 +40,21 @@ typedef struct memo_data {
     int num_tbls;
     int *table;
 } memo_data_t;
+
+// Structs for the hash
+typedef struct{
+    int genes[10];
+} geneset_t;
+
+typedef struct {
+    geneset_t id; /* REQUIRED: the key */
+    double weight;
+    int function;
+    UT_hash_handle hh; /* REQUIRED: makes this structure hashable */
+} weight_t;
+
+// Global store of the weights of seen gene sets
+extern weight_t *weightHash;
 
 /* The weight function used by dendrix. */
 typedef double (*weight_function) (mutation_data_t *mut_data, current_soln_values_t *curr_soln_vals, int *ctbl, int k, double pvalthresh); 
@@ -86,6 +103,7 @@ void frozensets2pylists(frozen_arrays_t *frozen, int numFrozen, int k, PyObject 
 void copyArr(double *A, double *B, int n);
 double sum(double *arr, int n);
 int sum_array(int a[], int start, int end);
+int ascending(const void * elem1, const void * elem2);
 
 /*********************/
 /* weights.c */
@@ -131,6 +149,7 @@ PyObject *py_exact_test(PyObject *self, PyObject *args);
 PyObject *py_binomial_test(PyObject *self, PyObject *args);
 PyObject *py_comet(PyObject *self, PyObject *args);
 PyObject *py_exhaustive(PyObject *self, PyObject *args);
+PyObject *py_load_precomputed_scores(PyObject *self, PyObject *args);
 
 /**********************/
 /* comet_mcmc.c   */

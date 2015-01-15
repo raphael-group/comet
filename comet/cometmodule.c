@@ -2,6 +2,8 @@
 
 
 double *lnfacs;
+weight_t *weightHash;
+
 /******************************************************************************
 * Python utility functions
 ******************************************************************************/
@@ -139,6 +141,37 @@ PyObject *py_binomial_test(PyObject *self, PyObject *args){
 
 }
 
+/* load precomuted gene set score from file */
+PyObject *py_load_precomputed_scores(PyObject *self, PyObject *args){
+  // Parameters
+  double score;
+  PyObject *py_set; // FLAT Python contingency table
+  int size, func, i; // Helper variables
+  
+  // Parse parameters
+  if (! PyArg_ParseTuple( args, "diiO!", &score, &size, &func, &PyList_Type, &py_set))
+    return NULL;
+  
+  geneset_t *key;
+  weight_t *w;
+  // Generate the key by sorting the arr
+  key = malloc( sizeof(geneset_t) );
+  memset(key, 0, sizeof(geneset_t));
+  for (i = 0; i < size; i++) key->genes[i] = (int) PyLong_AsLong (PyList_GetItem(py_set, i));  
+  qsort(key->genes, size, sizeof(int), ascending);
+
+  // Try and find the geneset
+  HASH_FIND(hh, weightHash, key, sizeof(geneset_t), w);  /* id already in the hash? */  
+  if (w == NULL) {
+    w = malloc(sizeof(weight_t));
+    w->id = *key;
+    w->weight = score;
+    w->function = func;
+    HASH_ADD( hh, weightHash, id, sizeof(geneset_t), w );  /* id: name of key field */    
+  }
+  return Py_BuildValue(""); // returns NULL
+}
+
 PyObject *py_comet(PyObject *self, PyObject *args){
   // Parameters
   int i, j, ell, amp, nt, subtype_size;
@@ -239,6 +272,7 @@ PyMethodDef DppMethods[] = {
     {"binom_test", py_binomial_test, METH_VARARGS, "Computes Dendrix++ exact test."},    
     {"comet", py_comet, METH_VARARGS, "Computes Dendrix++ in MCMC."},    
     {"precompute_factorials", py_precompute_factorials, METH_VARARGS, "Precomputes factorials for 0...N"},
+    {"load_precomputed_scores", py_load_precomputed_scores, METH_VARARGS, "Loading precomputed scores from file"},
     {"free_factorials", free_factorials, METH_NOARGS, "Frees memory used for factorials"},
     {NULL, NULL, 0, NULL},
 };
