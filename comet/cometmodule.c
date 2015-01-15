@@ -5,6 +5,17 @@ double *lnfacs;
 /******************************************************************************
 * Python utility functions
 ******************************************************************************/
+PyObject *py_set_random_seed(PyObject *self, PyObject *args){
+  // Parse params
+    int seed;
+    if (! PyArg_ParseTuple( args, "i", &seed )) return NULL;
+
+    // Intialize random number generator with the given seed
+    srand((unsigned) seed);
+  
+    return Py_BuildValue(""); // returns NULL
+}
+
 PyObject *py_precompute_factorials(PyObject *self, PyObject *args){
 	// Parse params
     int N;
@@ -233,13 +244,14 @@ PyObject *py_comet(PyObject *self, PyObject *args){
 * Export functions to python
 ******************************************************************************/
 PyMethodDef DppMethods[] = {
-    {"exhaustive", py_exhaustive, METH_VARARGS, ""},
-    {"set_weight", py_set_weight, METH_VARARGS, ""},
-    {"exact_test", py_exact_test, METH_VARARGS, "Computes Dendrix++ exact test."},
-    {"binom_test", py_binomial_test, METH_VARARGS, "Computes Dendrix++ exact test."},    
-    {"comet", py_comet, METH_VARARGS, "Computes Dendrix++ in MCMC."},    
+    {"exhaustive", py_exhaustive, METH_VARARGS, "Compute the weight for all combinations of k genes in the given data."},
+    {"set_weight", py_set_weight, METH_VARARGS, "Choose the CoMEt weight function for when running `exhaustive`."},
+    {"exact_test", py_exact_test, METH_VARARGS, "Computes CoMEt exact test."},
+    {"binom_test", py_binomial_test, METH_VARARGS, "Computes CoMEt binomial test."},    
+    {"comet", py_comet, METH_VARARGS, "Computes CoMEt in MCMC."},    
     {"precompute_factorials", py_precompute_factorials, METH_VARARGS, "Precomputes factorials for 0...N"},
     {"free_factorials", free_factorials, METH_NOARGS, "Frees memory used for factorials"},
+    {"set_random_seed", py_set_random_seed, METH_VARARGS, "Set the C PRNG seed."},
     {NULL, NULL, 0, NULL},
 };
 

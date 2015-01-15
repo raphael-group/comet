@@ -311,11 +311,6 @@ void comet_mcmc(mutation_data_t *A, int m, int n, int *ks, int t, int num_iters,
   set          = malloc(sizeof(int) * num_genes);
   weights      = malloc(sizeof(weights[0]) * t);
   next_weights = malloc(sizeof(next_weights[0]) * t);
-
-  // Intialize random number generator with the current time
-  time_t T;
-  srand((unsigned) time(&T));
-  
   
   // Initialize the Markov chain
   if (size_initial_soln == 0){    

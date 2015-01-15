@@ -126,6 +126,7 @@ frozen_arrays_t *comet_exhaustive(mutation_data_t *mut_data, int k, int *numSets
 int choose(int N, int k); 
 
 /* Functions callable from Python*/
+PyObject *py_set_random_seed(PyObject *self, PyObject *args);
 PyObject *py_free_factorials(PyObject *self, PyObject *args);
 PyObject *py_exact_test(PyObject *self, PyObject *args);
 PyObject *py_binomial_test(PyObject *self, PyObject *args);

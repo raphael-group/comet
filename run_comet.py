@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 # Load required modules
-import sys, os, json, re, comet as C
+import sys, os, json, re, time, comet as C
 from math import exp
 
 # Try loading Multi-Dendrix
@@ -23,6 +23,8 @@ def get_parser():
                         help='Output path prefix (TSV format).')
     parser.add_argument('-v', '--verbose', default=True, action="store_true",
                         help='Flag verbose output.')
+    parser.add_argument('--seed', default=int(time.time()), type=int,
+                        help='Set the seed of the PRNG.')
 
     # Mutation data
     parser.add_argument('-m', '--mutation_matrix', required=True,
@@ -197,6 +199,7 @@ def run( args ):
     
     # Precompute factorials
     C.precompute_factorials(max(m, n))
+    C.set_random_seed(args.seed)
     
     # stored the score of pre-computed collections
     if args.ran_genesets: 
@@ -265,5 +268,7 @@ def run( args ):
 
     outputFile = "%s.tsv" % iter_num(args.output_prefix + '.sum', N*(runNum), ks, w, args.accelerator)
     with open(outputFile, "w") as outfile: outfile.write( "\n".join(tbl) )
+
+    return [ (S, results[S]["freq"], results[S]["total_weight"]) for S in collections ]
 
 if __name__ == "__main__": run( get_parser().parse_args(sys.argv[1:]) )    

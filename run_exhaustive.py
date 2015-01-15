@@ -76,4 +76,6 @@ def run( args ):
         output.insert(0, "#Gene set\tP-value\tFreq\tWeight")
         outfile.write( "\n".join(output) )
 
+    return zip(solns, probs, weights)
+
 if __name__ == "__main__": run( get_parser().parse_args(sys.argv[1:]) )    
