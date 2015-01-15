@@ -76,6 +76,47 @@ PyObject *py_exhaustive(PyObject *self, PyObject *args){
     return ret;
 }
 
+/* the phi score, callable from Python given required information*/
+PyObject *py_comet_score(PyObject *self, PyObject *args){
+    int i, k, numPatients, numGenes, coCutoff, numPermutations, func; // parameters
+    int *genes;
+    PyObject *py_genes, *patients2mutatedGenes, *gene2numMutations, *result;
+    mutation_data_t *A;
+    double exactPvalthresh, binomPvalthresh, score;
+    
+    /* Parse Python arguments */
+    if (! PyArg_ParseTuple( args, "iiiO!O!ddiiO!", &k, &numGenes, &numPatients, 
+                            &PyList_Type, &patients2mutatedGenes, &PyList_Type, &gene2numMutations, 
+                            &exactPvalthresh, &binomPvalthresh, &coCutoff, &numPermutations,
+                            &PyList_Type, &py_genes)) {
+        return NULL;
+    }
+    int num_entries = 1 << k;  
+    int tbl[num_entries];  
+    int **co_elem = malloc(sizeof(int *) * k);      
+    genes = malloc(sizeof(int) * k);
+    for (i = 0; i < k; i++) genes[i] = (int) PyLong_AsLong (PyList_GetItem(py_genes, i));
+    A = mut_data_allocate(numPatients, numGenes);
+    init_mutation_data (A, numPatients, numGenes,
+                        patients2mutatedGenes, gene2numMutations);
+
+    contingency_tbl_gen(A, k, tbl, genes); 
+
+    for (i=0; i< k; i++){    
+      co_elem[i] = get_co_cells(i+1);    
+    }
+    
+    comet_phi(genes, k, numPatients, A, tbl, co_elem, &score, &func, coCutoff, numPermutations, binomPvalthresh, exactPvalthresh);
+
+    result = Py_BuildValue("di", score, func);
+    free(tbl);
+    for (i = 0; i < k; i++)
+      if(co_elem[i] != NULL) free(co_elem[i]);
+    return result;
+
+    
+}
+
 /* The general exact test, callable from the Python driver. */
 PyObject *py_exact_test(PyObject *self, PyObject *args){
   // Parameters
@@ -270,7 +311,7 @@ PyMethodDef CoMEtMethods[] = {
     {"set_weight", py_set_weight, METH_VARARGS, ""},
     {"exact_test", py_exact_test, METH_VARARGS, "Computes Dendrix++ exact test."},
     {"binom_test", py_binomial_test, METH_VARARGS, "Computes Dendrix++ exact test."},    
-    //{"comet_score", py_comet_score, METH_VARARGS, "Computes comet score from three tests."},    
+    {"comet_score", py_comet_score, METH_VARARGS, "Computes comet score (phi) from three tests."},    
     {"comet", py_comet, METH_VARARGS, "Computes Dendrix++ in MCMC."},    
     {"precompute_factorials", py_precompute_factorials, METH_VARARGS, "Precomputes factorials for 0...N"},
     {"load_precomputed_scores", py_load_precomputed_scores, METH_VARARGS, "Loading precomputed scores from file"},
