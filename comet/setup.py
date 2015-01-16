@@ -33,10 +33,8 @@ setup(name='CoMEt', version='1.0', description='C module for running CoMEt.',
 # Second compile the Fortran code
 
 # Load required modules
-from numpy.distutils.misc_util import Configuration
-from numpy.distutils.core import setup
+from numpy.distutils.core import Extension, setup
 
 # Compile the bipartite edge swap code
-# config = Configuration('', '', '')
-# config.add_extension('bipartite_edge_swap', sources=['src/fortran/bipartite_edge_swap.f95'])
-# setup(**config.todict())
+ext = Extension(name='bipartite_edge_swap', sources=['src/fortran/bipartite_edge_swap.f95'])
+setup(name='bipartite_edge_swap', ext_modules=[ext])

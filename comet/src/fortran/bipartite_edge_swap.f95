@@ -1,20 +1,21 @@
-subroutine bipartite_edge_swap(B, A, U, V, nswap, max_tries, seed, m, n)
+subroutine bipartite_edge_swap(B, A, xs, ys, nswap, max_tries, seed, m, n)
 
     implicit none
 
     integer, intent(in) :: m, n, nswap, max_tries, seed
-    integer, intent(in) :: A(m,n), U(m), V(n)
+    integer, intent(in) :: A(m,n), xs(m), ys(n)
     integer, intent(out) :: B(m,n)
-    integer :: u, v, x, y, i, r
+    integer :: u, v, x, y, i
+    real :: r
 
     ! Use the given random seed
-    random_seed(seed)
+    call random_seed(seed)
 
     do while (i < nswap)
         ! select random nodes in each partition
-        random_number(r)
+        call random_number(r)
         u = nint(r * m)
-        random_number(r)
+        call random_number(r)
         v = nint(r * n)
 
         ! choose a random neighbor
@@ -22,5 +23,4 @@ subroutine bipartite_edge_swap(B, A, U, V, nswap, max_tries, seed, m, n)
 
         !end if
     end do
-    
 end subroutine bipartite_edge_swap
