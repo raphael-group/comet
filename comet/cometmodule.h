@@ -150,8 +150,9 @@ int choose(int N, int k);
 PyObject *py_free_factorials(PyObject *self, PyObject *args);
 PyObject *py_exact_test(PyObject *self, PyObject *args);
 PyObject *py_binomial_test(PyObject *self, PyObject *args);
+PyObject *py_permutation_test(PyObject *self, PyObject *args);
 PyObject *py_comet(PyObject *self, PyObject *args);
-PyObject *py_comet_score(PyObject *self, PyObject *args);
+PyObject *py_comet_phi(PyObject *self, PyObject *args);
 PyObject *py_exhaustive(PyObject *self, PyObject *args);
 PyObject *py_load_precomputed_scores(PyObject *self, PyObject *args);
 
