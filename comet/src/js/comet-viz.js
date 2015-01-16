@@ -1,6 +1,8 @@
 function dplusViz(data){
 	// Extract the weights
-	var weights = Object.keys(data.graphs).sort(d3.ascending).map(function(n){ return +n; });
+	var graph = data.graph,
+		numEdges = graph.edges.length,
+		weights = graph.weights;
 
 	// Select the various elements on the page
 	var slider = $("input#min-weight"),
@@ -60,9 +62,8 @@ function dplusViz(data){
 
 	function drawComponents(){
 		// Extract the current minimum edge weight
-		var index      = slider.val(),
-			weight     = weights[index],
-			components = data.graphs[weight];
+		var index  = slider.val(),
+			weight = weights[index];
 
 		// Update the slider and statistical significance select (if applicable)
 		currentWeight.text(weight);
@@ -72,14 +73,40 @@ function dplusViz(data){
 			deltaSelectJQ.val(val);
 		}
 
+		// Add/Remove the edges as needed, then extract the current components
+		var edges = graph.edges.filter(function(d){ return d.weight >= weight; }),
+			components = connectedComponents(edges, 2);
+
 		// Add the marginal probability graph, mutation matricx button, and
 		// sampled gene set button
 		results.selectAll("div.cc").remove();
-		components.forEach(function(obj, index){
+		components.forEach(function(cc, index){
 			// Copy the links/nodes so they can be modified
-			var links = obj.edges.map(function(d){ return $.extend(true, {}, d); }),
-				nodes = obj.nodes.map(function(d){ return $.extend(true, {}, d); }),
+			var links = edges.filter(function(d){ return cc.indexOf(d.source) !== -1; })
+							 .map(function(d){ return $.extend(true, {}, d); }),
+				nodes = cc.map(function(i){ return $.extend(true, {}, graph.nodes[i]); }),
 				nodeNames = nodes.map(function(d){ return d.name; });
+
+			// Renumber the edges from 0..len(component)
+			var nodeToIndex = {};
+			cc.forEach(function(n, i){ nodeToIndex[n] = i; });
+			links.forEach(function(d){
+				d.source = nodeToIndex[d.source];
+				d.target = nodeToIndex[d.target];
+			});
+
+			// Compute a position for each node in a circular layout
+			// (based off of http://goo.gl/gqvhgt).
+			var increase = Math.PI * 2 / nodes.length,
+				x = 0,
+				y = 0,
+				angle = 0;
+
+			nodes.forEach(function(n, i){
+				n.x = 0.5 * Math.cos(angle) + 0.5;
+				n.y = 0.5 * Math.sin(angle) + 0.5;
+				angle += increase;
+			});
 
 			// Add a container to hold the graphs
 			var container = results.append("div")
@@ -187,6 +214,12 @@ function dplusViz(data){
 
 }
 
+function connectedComponents(edges, minCCSize){
+	UF = UnionFind();
+	edges.forEach(function(d){ UF.union([d.source, d.target]); });
+	return UF.groups().filter(function(g){ return g.length >= minCCSize; });
+}
+
 function filterSamples(genes, M, sampleToTypes){
     // Make a marking samples that are mutated
     var sampleToMutated = {};
@@ -204,4 +237,77 @@ function filterSamples(genes, M, sampleToTypes){
     });
 
     return filteredSampleToTypes;
+}
+
+// Implementation of UnionFind data structure
+// Based off of NetworkX's Python implementation: https://networkx.github.io/documentation/latest/_modules/networkx/utils/union_find.html
+function UnionFind(){
+	// Instance variables
+	var weights = {},
+		parents = {};
+
+	// Find and return the name of the set containing the object
+	function get(x){
+		// check for previously unknown object
+		if (!(x in parents)){
+			parents[x] = x;
+			weights[x] = 1;
+			return x;
+		} else {
+			// find path of objects leading to the root
+			var path = [x],
+				root = parents[x],
+				count = 0;
+
+			while (root != path[path.length - 1] && count <= 15){
+				path.push( root );
+				root = parents[root];
+				count++;
+			}
+
+			// compress the path and return
+			path.forEach(function(ancestor){
+				parents[ancestor] = root;
+			});
+
+			return root;
+		}
+	}
+
+	// Find the sets containing the objects and merge them all
+	function union(xs){
+		// Convert xs to a list if it isn't one already
+		if (xs.constructor != Array){
+			xs = [xs];
+		}
+
+		// Merge all sets containing any x in xs
+		var roots = xs.map(get),
+			heaviest = d3.max(roots.map(function(r){ return [weights[r], r]; }))[1];
+
+		roots.forEach(function(r){
+			if (r != heaviest){
+				weights[heaviest] += weights[r];
+				parents[r] = heaviest;
+			}
+		});
+	}
+
+	// Return a list of lists containing each group
+	function groups(){
+		var groupIndex = 0,
+			groupToIndex = {},
+			currentGroups = [[]];
+
+		Object.keys(parents).forEach(function(n){
+			var group = get(n);
+			if (!(group in groupToIndex)) groupToIndex[group] = groupIndex++;
+			if (currentGroups.length <= groupToIndex[group]) currentGroups.push([]);
+			currentGroups[groupToIndex[group]].push( +n );
+		});
+
+		return currentGroups;
+	}
+
+	return { get: get, union: union, groups: groups };
 }

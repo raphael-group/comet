@@ -235,23 +235,6 @@ def extract_relevant_edges(edges, minEdgeWeight):
 
 	return sorted(weightToEdges.keys(), reverse=True), weightToEdges
 
-def connected_components_by_min_edge_weight(edges, weights, weightToEdges):
-	# For each weight (delta) in the list of weights, determine the
-	# connected components in the marginal probability graph after
-	# removing edges below that weight
-	UF= C.UnionFind()
-	n = 0
-	components = dict()
-	for w in weights:
-		for u, v in weightToEdges[w]:
-			UF.union(u, v)
-			n += 1
-		components[w] = map(list, UF.get_sets())
-
-	components[0] = [[ g for S in UF.get_sets() for g in S ]]
-
-	return components
-
 def gd3_mutation_data(m, n, genes, patients, geneToCases, patientToGenes,
 					  genespace, eventNames, sampleToType=None):
 	# Sample information (TODO: More elegant solution later)
@@ -285,26 +268,14 @@ def gd3_mutation_data(m, n, genes, patients, geneToCases, patientToGenes,
 
 	return dict(M=M, sampleToTypes=sampleToTypes, typeToSamples=typeToSamples)
 
-def gd3_graph(MPG, components, eventNames, minEdgeWeight):
-	# Create a graph in GD3 format for each component 
-	graphData = dict()
-	for w, ccs in sorted(components.iteritems()):
-		data = []
-		for cc in ccs:
-			# Induce a subgraph for the current component, and use
-			# NetworkX to precompute a circular layout for those genes
-			G = MPG.subgraph(cc)
-			positions = nx.circular_layout(G)
-
-			# Convert positions to floats 
-			nodes = [ dict(name=eventNames[n], x=float(positions[n][0]), y=float(positions[n][1])) for n in cc ]
-			edges = [ dict(source=cc.index(u), target=cc.index(v), weight=d['weight'])
-					  for u, v, d in G.edges(data=True)
-					  if d['weight'] >= w ]
-			data.append( dict(nodes=nodes, edges=edges) )
-		graphData[w] = sorted(data, key=lambda d: max([ d2['weight'] for d2 in d['edges'] ]), reverse=True)
-
-	return graphData
+def gd3_graph(MPG, eventNames, minEdgeWeight):
+	nodes = MPG.nodes()
+	edges = [ dict(source=nodes.index(u), target=nodes.index(v), weight=d['weight'])
+			  for u, v, d in MPG.edges(data=True) if d['weight'] >= minEdgeWeight ]
+	edges.sort(key=lambda d: d['weight'], reverse=True)
+	nodes = [ dict(name=eventNames[n]) for n in nodes ]
+	weights = sorted([ d['weight'] for d in edges ])
+	return dict(nodes=nodes, edges=edges, weights=weights)
 
 ###########################################################################$$$$
 # Parse command-line arguments and run
@@ -323,7 +294,7 @@ def get_parser():
 	# General
 	parser.add_argument('-o', '--output_directory', required=True, type=str,
 						help='Path to output directory.')
-	parser.add_argument('-v', '--verbose', default=False, action='store_false',
+	parser.add_argument('-v', '--verbose', default=False, action='store_true',
 						help='Flag verbose output.')
 
 	# Mutation data
@@ -420,13 +391,8 @@ def run( args ):
 			}
 	}
 
-	# Find the connected components and number of edges for each weight
-	weights, weightToEdges = extract_relevant_edges(edges, mew)
-	components = connected_components_by_min_edge_weight(edges, weights, weightToEdges)
-	genesInResults = components[0][0]
-	collections = obj["collections"]
-
 	# TO-DO: HSIN-TA: Please comment, I have no idea what this does!
+	collections = obj["collections"]
 	deltas = [ dict(delta=collections[m]["delta"], pval=collections[m]["pval"], method=m,
 			   cdelta=min(obj["deltas"], key=lambda x:abs(x-collections[m]["delta"])))
 			   for m in obj["mm"] ]
@@ -434,6 +400,7 @@ def run( args ):
 
 	# Write the delta plot to file as an SVG, then load
 	# it so we can embed it in the web page
+	if args.verbose: print "* Plotting delta curve..."
 	tmp = tempfile.mktemp(".svg", dir=".", prefix=".tmp")
 	delta_plot(obj, tmp, passPoint, deltaPoint, edgeno)
 
@@ -444,7 +411,9 @@ def run( args ):
 	stats = dict(deltas=deltas, plot=plot, N=N)
 
 	# Combine everything to create the D3 data
-	graphData = gd3_graph(MPG, components, eventNames, mew)
+	if args.verbose: print "* Creating GD3 data..."
+	graphData = gd3_graph(MPG, eventNames, mew)
+	genesInResults = MPG.nodes()
 	sampleToType = None
 	if args.sample_types_file:
 		with open(args.sample_types_file) as f:
@@ -453,9 +422,10 @@ def run( args ):
 								  eventNames=eventNames, sampleToType=sampleToType)
 
 	# Output the results to an HTML file
+	if args.verbose: print "* Outputting..."
 	htmlOutput = "{}/index.html".format(args.output_directory)
 	with open(args.template_file) as template, open(htmlOutput, "w") as outfile:
-		jsonData = json.dumps( dict(graphs=graphData, mutations=mutations, tables=tables, stats=stats))
+		jsonData = json.dumps( dict(graph=graphData, mutations=mutations, tables=tables, stats=stats))
 		html = template.read()
 		html += "\n<script>\nvar data = {};\ndplusViz(data);\n</script>\n".format(jsonData)
 		outfile.write( html )

@@ -75,7 +75,7 @@ function mpgraph(container, nodes, links){
 			.attr("y1", function(d) { return d.source.y; })
 			.attr("x2", function(d) { return d.target.x; })
 			.attr("y2", function(d) { return d.target.y; });
-		
+
 		edgeLabels.attr("x", function(d) { return d.source.x + (d.target.x - d.source.x) / 2; })
 			.attr("y", function(d) { return d.source.y + (d.target.y - d.source.y) / 2; });
 
