@@ -11,6 +11,8 @@ subroutine bipartite_edge_swap(B, A, xs, ys, nswap, max_tries, seed, m, n)
     ! Use the given random seed
     call random_seed(seed)
 
+    i = 0
+
     do while (i < nswap)
         ! select random nodes in each partition
         call random_number(r)

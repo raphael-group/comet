@@ -36,5 +36,5 @@ setup(name='CoMEt', version='1.0', description='C module for running CoMEt.',
 from numpy.distutils.core import Extension, setup
 
 # Compile the bipartite edge swap code
-ext = Extension(name='bipartite_edge_swap', sources=['src/fortran/bipartite_edge_swap.f95'])
-setup(name='bipartite_edge_swap', ext_modules=[ext])
+ext = Extension(name='permute_matrix', sources=['src/fortran/permute_matrix.f95'])
+setup(name='permute_matrix', ext_modules=[ext])
