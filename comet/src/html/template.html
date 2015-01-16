@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="stylesheet" href="bower_components/bootstrap/dist/css/bootstrap.min.css">
+<link rel="stylesheet" href="bower_components/DataTables/media/css/jquery.dataTables.css">
+<link rel="stylesheet" href="style.css">
+<title>CoMEt results</title>
+<body>
+<div class="container">
+	<h3>CoMEt Results</h3>
+	<div id="significance" style="display:none">
+		<div class="panel panel-default">
+			<div class="panel-heading">
+				<h4 data-toggle="collapse" data-parent="#accordion" href="#collapseOne" style="cursor:pointer" class="panel-title" id="significance-title">
+					Significance Plot
+					<span style="float:right">[+]</span>
+				</h4>
+			</div>
+			<div id="collapseOne" class="panel-collapse collapse">
+				<div class="panel-body" id="signifiance-plot" style="text-align:center"></div>
+			</div>
+		</div>
+	<div>
+		<div style="float:left;min-width:300px">
+			<b>
+				Min. Edge Weight <i>&delta;</i>=<span id="weight-threshold">0</span>
+				<br/>
+				<input id="min-weight" type="range" min="0" max="5" value="0" step="1">
+			</b>
+		</div>
+		<div style="float:right;display:none" id="choose-stat-delta">
+			<select class="form-control">
+				<!-- Use a -1 value so we can easily reset to this option later -->
+				<option value="-1"><i>&delta;</i> selected by CoMEt</option>
+			</select>
+		</div>
+		<br/>
+		<br/>
+		<div id="results" class="list-group col-lg-12">
+			<div class="list-group-item list-group-item-success col-lg-4">Marginal Probability Graph</div>
+			<div class="list-group-item list-group-item-success col-lg-8">Mutation Matrix</div>
+		</div>
+	</div>
+</div>
+<script src="bower_components/jquery/dist/jquery.min.js"></script>
+<script src="bower_components/d3/d3.min.js"></script>
+<script src="bower_components/crossfilter/crossfilter.min.js"></script>
+<script src="bower_components/bootstrap/dist/js/bootstrap.min.js"></script>
+<script src="bower_components/gd3/dist/js/mutation-matrix.js"></script>
+<script src="bower_components/DataTables/media/js/jquery.dataTables.min.js"></script>
+<script src="./mp-graph.js"></script>
+<script src="./comet-viz.js"></script>

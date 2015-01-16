@@ -90,7 +90,7 @@ def run( args ):
         permuteArgs += [ "-m", "{}/{}".format(args.permuted_matrices_directory, f)]
         permuteArgs += [ "-o", "{}/{}".format(args.output_prefix, f)]
         arguments.append( permuteArgs )
-            
+
     if args.parallel:
         pool = mp.Pool(25)
         pool.map(runComet, arguments)
