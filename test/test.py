@@ -6,6 +6,7 @@
 if __name__ == "__main__":
 	# Load required modules
 	import sys, os, json
+        sys.path.append('../')
 	import comet as C, run_comet as RC, run_exhaustive as RE
 
 	# Hard-coded results of earlier runs
@@ -14,19 +15,21 @@ if __name__ == "__main__":
 
 	# Run CoMEt MCMC using a fixed seed
 	seed = 23
-	mcmcArgs = [ "-m", "example_datasets/gbm/GBM.m2",  "-o", "tmp-mcmc",
-				 "-g", "example_datasets/gbm/GBM.glst", "-N", "10000",
+	mcmcArgs = [ "-m", "../example_datasets/gbm/GBM.m2",  "-o", "tmp-mcmc",
+				 "-g", "../example_datasets/gbm/GBM.glst", "-N", "10000",
 				 "--seed", str(seed), "-mf", "30", "-ks", "3", "3"]
 	mcmcResults = RC.run(RC.get_parser().parse_args(mcmcArgs))
-
+        os.unlink("tmp-mcmc.para.k33.10.0K.1.json")
+        os.unlink("tmp-mcmc.sum.k33.10.0K.1.tsv")
+        
 	# Run exhaustive
-	exhaustArgs = ["-m", "example_datasets/gbm/GBM.m2", "-o", "tmp",
-				   "-g", "example_datasets/gbm/GBM.glst", "-k", "3",
+	exhaustArgs = ["-m", "../example_datasets/gbm/GBM.m2", "-o", "tmp",
+				   "-g", "../example_datasets/gbm/GBM.glst", "-k", "3",
 				   "-mf", "30"]
 	exhaustResults = RE.run(RE.get_parser().parse_args(exhaustArgs))
+        os.unlink("tmp-k3-exact-exhaustive.tsv")
 
 	# Check the results
-	with open("mcmc.json", "w") as outfile: json.dump(mcmcResults, outfile)
 	assert(json.dumps(exhaustResults) == json.dumps(trueExhaustive))
 	assert(json.dumps(mcmcResults) == json.dumps(trueMCMC))
 
