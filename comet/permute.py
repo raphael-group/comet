@@ -1,13 +1,24 @@
 #!/usr/bin/python
 
 # Import globally required modules
-import sys, random
-try: import networkx as nx
+import sys, random, numpy as np
+try:
+        import networkx as nx
+        from networkx.algorithms.bipartite import biadjacency_matrix
 except ImportError:
 	print 'Error!'
 	print '\tCould not import NetworkX (http://networkx.github.com).'
 	print '\tMake sure NetworkX is in your path.'
 	sys.exit(1)
+
+# Try to import the Fortran double edge swap, otherwise
+# import the Python version
+try: 
+        from permute_matrix import bipartite_edge_swap
+        fortranBindings = True
+except ImportError:
+        fortranBindings = False
+        sys.stderr.write("[Warning] Could not import Fortran bipartite_edge_swap bindings.\n")
 
 def bipartite_double_edge_swap(G, genes, patients, nswap=1, max_tries=1e75):
 	"""A modified version of the double_edge_swap function in NetworkX to preserve the bipartite structure of the graph.
@@ -81,6 +92,18 @@ def graph_to_mutation_data(H, genes, patients):
 	return m, n, genes, patients, geneToCases, patientToGenes
 
 def permute_mutation_data(G, genes, patients, Q=100):
-	H = G.copy()
-	bipartite_double_edge_swap(H, genes, patients, nswap=Q * len( G.edges() ))
+        if fortranBindings:
+                # Compute the desired pieces of the graph structure
+                degrees = [ G.degree(n) for n in genes + patients ]
+                A = np.array(biadjacency_matrix(G, row_order=genes,
+                                                column_order=patients,
+                                                dtype=np.int32))
+                
+                # Set up and call the permute matrix function
+                B = bipartite_edge_swap(A, degrees, len(G.edges()) * Q, 1e75)
+                H = nx.Graph()
+                H.add_edges_from([ (genes[u], patients[v]) for u, v in zip(*np.where(B == 1)) ])
+        else:
+                H = G.copy()
+                bipartite_double_edge_swap(H, genes, patients, nswap=Q * len( G.edges() ))
 	return graph_to_mutation_data(H, genes, patients)
