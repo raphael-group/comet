@@ -1,9 +1,8 @@
-subroutine nth_one(pos, arr, index, t, num, m, n)
-  implicit none
-
+integer function nth_one(arr, index, t, num, m, n)
+  
   integer, intent(in) :: num, m, n, index, t
   integer, intent(in) :: arr(m, n)
-  integer :: total, i, pos
+  integer :: total, i
 
   total = 0
 
@@ -14,7 +13,7 @@ subroutine nth_one(pos, arr, index, t, num, m, n)
            total = total + 1
         end if
         if (total .eq. num) then
-           pos = i
+           nth_one = i
            exit
         end if
      end do
@@ -25,12 +24,12 @@ subroutine nth_one(pos, arr, index, t, num, m, n)
            total = total + 1
         end if
         if (total .eq. num) then
-           pos = i
+           nth_one = i
            exit
         end if
      end do
   end if
-end subroutine nth_one
+end function nth_one
 
 subroutine bipartite_edge_swap(B, A, degrees, nswap, max_tries, m, n, num_nodes)
 
@@ -39,7 +38,7 @@ subroutine bipartite_edge_swap(B, A, degrees, nswap, max_tries, m, n, num_nodes)
     integer, intent(in) :: m, n, num_nodes, nswap, max_tries
     integer, intent(in) :: A(m,n), degrees(num_nodes)
     integer, intent(out) :: B(m,n)
-    integer :: u, v, x1, y1, x2, y2, swapcount, iter
+    integer :: u, v, x1, y1, x2, y2, swapcount, iter, nth_one
     double precision :: r(4)
 
     ! Initialize the permuted
@@ -64,8 +63,8 @@ subroutine bipartite_edge_swap(B, A, degrees, nswap, max_tries, m, n, num_nodes)
        u  = int(1 + r(3) * degrees(x1))
        v  = int(1 + r(4) * degrees(m + y1))
        
-       call nth_one(y2, B, x1, 0, u, m, n)
-       call nth_one(x2, B, y1, 1, v, m, n)
+       y2 = nth_one(B, x1, 0, u, m, n)
+       x2 = nth_one(B, y1, 1, v, m, n)
 
        ! If x1 is not already connected to y1 and
        ! x2 is not already connected to y2 then we will

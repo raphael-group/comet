@@ -57,12 +57,16 @@ if __name__ == "__main__":
         H = call_bipartite_edge_swap( G, xs, ys, Q=Q )
         print "\tFortran:", time.time() - start, 'secs'
         worked = check_degrees(G, H)
+        if not worked:
+            raise ValueError("Degrees in permuted graph are different than original graph.")
         
         # Run and time in Python
         start = time.time()
         H = P.bipartite_double_edge_swap( G, xs, ys, nswap=numEdges * Q)
         print "\tPython:", time.time() - start, 'secs'
         check_degrees(G, H)
+        if not worked:
+            raise ValueError("Degrees in permuted graph are different than original graph.")
 
         print
 
