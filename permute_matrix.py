@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 # Import globally required modules
-import sys, os, random, errno
+import sys, os, random, errno, time
 import comet as C
 
 # Parse args
@@ -30,6 +30,8 @@ def get_parser():
 						help='Edge swapping parameter.')
 	parser.add_argument('--verbose', default=False, action='store_true',
 						help='Flag verbose mode.')
+	parser.add_argument('--seed', default=int(time.time()), required=False, type=int,
+                            help='Integer seed for the PRNG.')
 	return parser
 
 def run(args):
@@ -64,7 +66,7 @@ def run(args):
 			sys.stdout.flush()
 		
 		# Permute bipartite graph and output as a patient adjacency list
-		mutations = C.permute_mutation_data(G, genes, patients, args.Q)
+		mutations = C.permute_mutation_data(G, genes, patients, args.seed, args.Q)
 		_, _, _, _, geneToCases, patientToGenes = mutations
 		adj_list = [ p + "\t" + "\t".join( sorted(patientToGenes[p]) ) for p in patients ]
 		matrices.append(adj_list)

@@ -4,7 +4,7 @@ integer function nth_one(arr, index, t, num, m, n)
   integer, intent(in) :: arr(m, n)
   integer :: total, i
 
-  total = 0
+  total = 0 ! number of ones we've seen so far
 
   ! If we are searching in a row
   if (t .eq. 0) then
@@ -31,25 +31,42 @@ integer function nth_one(arr, index, t, num, m, n)
   end if
 end function nth_one
 
-subroutine bipartite_edge_swap(B, A, degrees, nswap, max_tries, m, n, num_nodes)
+! Seed the PRNG with the given number.
+! random_seed requires a collection of m seeds, but
+! we just pass in the same seed m times
+subroutine seed_prng(n)
+    implicit none
+
+    integer, intent(in) :: n
+    integer :: m
+    integer, allocatable :: x(:)
+
+    call random_seed(size = m)
+    allocate(x(m))
+    x = n
+    call random_seed(put = x)
+    deallocate(x)
+
+end subroutine seed_prng
+
+
+subroutine bipartite_edge_swap(B, A, degrees, nswap, max_tries, seed, m, n, num_nodes)
 
     implicit none
 
-    integer, intent(in) :: m, n, num_nodes, nswap, max_tries
+    integer, intent(in) :: m, n, num_nodes, nswap, max_tries, seed
     integer, intent(in) :: A(m,n), degrees(num_nodes)
     integer, intent(out) :: B(m,n)
     integer :: u, v, x1, y1, x2, y2, swapcount, iter, nth_one
     double precision :: r(4)
 
-    ! Initialize the permuted
+    ! Initialize the permuted matrix and 
     B = A
-
-    ! Use the given random seed
-    ! TO-DO: fix this later. See http://goo.gl/mleKan
-    ! call random_seed()
-
     swapcount = 0
     iter = 0
+
+    ! Use the given random seed
+    call seed_prng(seed)
 
     do while (swapcount < nswap .and. iter < max_tries)
        ! select six random numbers, enough for this iteration

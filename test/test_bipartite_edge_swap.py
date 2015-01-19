@@ -20,12 +20,12 @@ def call_bipartite_edge_swap( G, xs, ys, Q ):
     # Compute the desired pieces of the graph structure
     degrees = [ G.degree(n) for n in xs + ys ]
     A = np.array(bipartite.biadjacency_matrix(G, row_order=xs, column_order=ys, dtype=np.int32))
-    
+
     # Set up and call the permute matrix function
     max_tries = 1e75
-    seed      = time.time()
+    seed      = random.randint(0, 2**32-1)
     nswap     = len(G.edges()) * Q
-    B = bipartite_edge_swap(A, degrees, nswap, max_tries)
+    B = bipartite_edge_swap(A, degrees, nswap, max_tries, seed)
     H = nx.Graph()
     H.add_edges_from([ (xs[u], ys[v]) for u, v in zip(*np.where(B == 1)) ])
     return H
@@ -49,6 +49,7 @@ if __name__ == "__main__":
     Q = 100
     for i, (numXs, numYs, numEdges) in enumerate([(300, 400, 20000)]):
         # Create a test graph
+        numXs, numYs, numEdges = 10, 10, 30
         xs, ys, G = test_random_bipartite_graph(numXs, numYs, numEdges)
         print "Test {}: {} genes x {} samples, {} mutations".format(i+1, len(xs), len(ys), numEdges)
         

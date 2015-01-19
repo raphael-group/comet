@@ -91,7 +91,7 @@ def graph_to_mutation_data(H, genes, patients):
 	m, n = len(genes), len(patients)
 	return m, n, genes, patients, geneToCases, patientToGenes
 
-def permute_mutation_data(G, genes, patients, Q=100):
+def permute_mutation_data(G, genes, patients, seed, Q=100):
         if fortranBindings:
                 # Compute the desired pieces of the graph structure
                 degrees = [ G.degree(n) for n in genes + patients ]
@@ -100,10 +100,11 @@ def permute_mutation_data(G, genes, patients, Q=100):
                                                 dtype=np.int32))
                 
                 # Set up and call the permute matrix function
-                B = bipartite_edge_swap(A, degrees, len(G.edges()) * Q, 1e75)
+                B = bipartite_edge_swap(A, degrees, len(G.edges()) * Q, 1e75, seed=seed)
                 H = nx.Graph()
                 H.add_edges_from([ (genes[u], patients[v]) for u, v in zip(*np.where(B == 1)) ])
         else:
                 H = G.copy()
+                random.seed(seed)
                 bipartite_double_edge_swap(H, genes, patients, nswap=Q * len( G.edges() ))
 	return graph_to_mutation_data(H, genes, patients)
