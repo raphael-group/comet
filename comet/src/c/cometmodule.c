@@ -2,6 +2,8 @@
 
 
 double *lnfacs;
+weight_t *weightHash;
+
 /******************************************************************************
 * Python utility functions
 ******************************************************************************/
@@ -85,6 +87,85 @@ PyObject *py_exhaustive(PyObject *self, PyObject *args){
     return ret;
 }
 
+/* the phi score, callable from Python given required information*/
+PyObject *py_comet_phi(PyObject *self, PyObject *args){
+    int i, k, numPatients, numGenes, coCutoff, numPermutations, func; // parameters
+    int *genes;
+    PyObject *py_genes, *patients2mutatedGenes, *gene2numMutations, *result;
+    mutation_data_t *A;
+    double exactPvalthresh, binomPvalthresh, score;
+    
+    /* Parse Python arguments */
+    if (! PyArg_ParseTuple( args, "iiiO!O!ddiiO!", &k, &numGenes, &numPatients, 
+                            &PyList_Type, &patients2mutatedGenes, &PyList_Type, &gene2numMutations, 
+                            &exactPvalthresh, &binomPvalthresh, &coCutoff, &numPermutations,
+                            &PyList_Type, &py_genes)) {
+        return NULL;
+    }
+    int num_entries = 1 << k;  
+    int tbl[num_entries];  
+    int **co_elem = malloc(sizeof(int *) * k);      
+    genes = malloc(sizeof(int) * k);
+    for (i = 0; i < k; i++) genes[i] = (int) PyLong_AsLong (PyList_GetItem(py_genes, i));
+    A = mut_data_allocate(numPatients, numGenes);
+    init_mutation_data (A, numPatients, numGenes,
+                        patients2mutatedGenes, gene2numMutations);
+
+    contingency_tbl_gen(A, k, tbl, genes); 
+
+    for (i=0; i< k; i++){    
+      co_elem[i] = get_co_cells(i+1);    
+    }
+    
+    comet_phi(genes, k, numPatients, A, tbl, co_elem, &score, &func, coCutoff, numPermutations, binomPvalthresh, exactPvalthresh);
+
+    result = Py_BuildValue("di", score, func);
+    free(tbl);
+    for (i = 0; i < k; i++)
+      if(co_elem[i] != NULL) free(co_elem[i]);
+    return result;
+
+    
+}
+
+/* the permutation test, callable from Python given required information*/
+PyObject *py_permutation_test(PyObject *self, PyObject *args){
+    int i, k, numPatients, numGenes, numPermutations, permute_count; // parameters
+    PyObject *py_genes, *patients2mutatedGenes, *gene2numMutations, *result;
+    mutation_data_t *A;    
+    
+    /* Parse Python arguments */
+    if (! PyArg_ParseTuple( args, "iiiO!O!iO!", &k, &numGenes, &numPatients, 
+                            &PyList_Type, &patients2mutatedGenes, &PyList_Type, &gene2numMutations, 
+                            &numPermutations, &PyList_Type, &py_genes)) {
+        return NULL;
+    }
+    int num_entries = 1 << k;  
+    int tbl[num_entries];  
+    int *freq = malloc(sizeof(int) * k);      
+    int *genes = malloc(sizeof(int) * k);
+    for (i = 0; i < k; i++) genes[i] = (int) PyLong_AsLong (PyList_GetItem(py_genes, i));
+    A = mut_data_allocate(numPatients, numGenes);
+    init_mutation_data (A, numPatients, numGenes,
+                        patients2mutatedGenes, gene2numMutations);
+
+    contingency_tbl_gen(A, k, tbl, genes); 
+
+    for (i=0; i< k; i++){    
+      freq[i] = A->G2numMuts[genes[i]];
+    }
+    permute_count = comet_permutation_test(k, numPermutations, numPatients, genes, freq, tbl);            
+
+    result = Py_BuildValue("d", permute_count/numPermutations);
+    free(tbl);
+    free(genes);
+    free(freq);
+    
+    return result;
+
+    
+}
+
 /* The general exact test, callable from the Python driver. */
 PyObject *py_exact_test(PyObject *self, PyObject *args){
   // Parameters
@@ -148,6 +229,37 @@ PyObject *py_binomial_test(PyObject *self, PyObject *args){
   free(tbl);
   return result;
 
+}
+
+/* load precomuted gene set score from file */
+PyObject *py_load_precomputed_scores(PyObject *self, PyObject *args){
+  // Parameters
+  double score;
+  PyObject *py_set; // FLAT Python contingency table
+  int size, func, i; // Helper variables
+  
+  // Parse parameters
+  if (! PyArg_ParseTuple( args, "diiO!", &score, &size, &func, &PyList_Type, &py_set))
+    return NULL;
+  
+  geneset_t *key;
+  weight_t *w;
+  // Generate the key by sorting the arr
+  key = malloc( sizeof(geneset_t) );
+  memset(key, 0, sizeof(geneset_t));
+  for (i = 0; i < size; i++) key->genes[i] = (int) PyLong_AsLong (PyList_GetItem(py_set, i));  
+  qsort(key->genes, size, sizeof(int), ascending);
+
+  // Try and find the geneset
+  HASH_FIND(hh, weightHash, key, sizeof(geneset_t), w);  /* id already in the hash? */  
+  if (w == NULL) {
+    w = malloc(sizeof(weight_t));
+    w->id = *key;
+    w->weight = score;
+    w->function = func;
+    HASH_ADD( hh, weightHash, id, sizeof(geneset_t), w );  /* id: name of key field */    
+  }
+  return Py_BuildValue(""); // returns NULL
 }
 
 PyObject *py_comet(PyObject *self, PyObject *args){
@@ -243,20 +355,23 @@ PyObject *py_comet(PyObject *self, PyObject *args){
 /******************************************************************************
 * Export functions to python
 ******************************************************************************/
-PyMethodDef DppMethods[] = {
-    {"exhaustive", py_exhaustive, METH_VARARGS, "Compute the weight for all combinations of k genes in the given data."},
-    {"set_weight", py_set_weight, METH_VARARGS, "Choose the CoMEt weight function for when running `exhaustive`."},
-    {"exact_test", py_exact_test, METH_VARARGS, "Computes CoMEt exact test."},
-    {"binom_test", py_binomial_test, METH_VARARGS, "Computes CoMEt binomial test."},    
-    {"comet", py_comet, METH_VARARGS, "Computes CoMEt in MCMC."},    
+PyMethodDef CoMEtMethods[] = {
+    {"exhaustive", py_exhaustive, METH_VARARGS, ""},
+    {"set_weight", py_set_weight, METH_VARARGS, ""},
+    {"exact_test", py_exact_test, METH_VARARGS, "Computes Dendrix++ exact test."},
+    {"binom_test", py_binomial_test, METH_VARARGS, "Computes Dendrix++ exact test."},    
+    {"permutation_test", py_permutation_test, METH_VARARGS, "Computes Dendrix++ exact test."},    
+    {"comet_phi", py_comet_phi, METH_VARARGS, "Computes comet score (phi) from three tests."},    
+    {"comet", py_comet, METH_VARARGS, "Computes Dendrix++ in MCMC."},    
     {"precompute_factorials", py_precompute_factorials, METH_VARARGS, "Precomputes factorials for 0...N"},
+    {"load_precomputed_scores", py_load_precomputed_scores, METH_VARARGS, "Loading precomputed scores from file"},
     {"free_factorials", free_factorials, METH_NOARGS, "Frees memory used for factorials"},
     {"set_random_seed", py_set_random_seed, METH_VARARGS, "Set the C PRNG seed."},
     {NULL, NULL, 0, NULL},
 };
 
 PyMODINIT_FUNC initcComet(void) {
-    PyObject *m = Py_InitModule("cComet", DppMethods);
+    PyObject *m = Py_InitModule("cComet", CoMEtMethods);
     if (m == NULL) {
         return;
     }

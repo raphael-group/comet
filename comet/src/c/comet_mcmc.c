@@ -3,26 +3,11 @@
 #include <time.h>
 #include <stdlib.h>
 #include <stdbool.h>
-#include "utils/uthash.h"
 
 #include "cometmodule.h"
 
 /*****************************************************************************/
 /* Computing the weight */
-// Structs for the hash
-typedef struct{
-    int genes[10];
-} geneset_t;
-
-typedef struct {
-    geneset_t id; /* REQUIRED: the key */
-    double weight;
-    int function;
-    UT_hash_handle hh; /* REQUIRED: makes this structure hashable */
-} weight_t;
-
-// Global store of the weights of seen gene sets
-weight_t *weightHash = NULL;
 int lookups = 0;
 int calculations = 0;
 double pvalthresh = 0.001;
@@ -39,63 +24,6 @@ int compute_num_co(int *ctbl, int k){
   free(co_cells);
   return numcells;
 }
-
-
-void W(int *genes, int k, int n, mutation_data_t *A, int *ctbl, int** kelem, double *score, int *func){
-        
-  double permute_count = 0.0;
-  double binom_pval, exact_pval;
-  int final_num_tbls;
-  int i, conum=0;
-  int freq[k];
-
-  if (k > 3){ // heuristic pipeline when k > 3    
-    
-    binom_pval = comet_binomial_test(k, n, ctbl, 1.1);    
-    conum = sum_cells(ctbl, kelem[k-1], pow(2, k)-k-1 );    
-    if (conum  > co_cutoff || binom_pval > binom_pvalthreshold){         
-        *score = -log(pow(binom_pval, mcmc_amp));
-        *func = 2;
-    }
-    else{     
-      exact_pval = comet_exact_test(k, n, ctbl, &final_num_tbls, pvalthresh);
-      if (exact_pval == -1){ // stop when pval > 0.01, do permutation test
-    
-        for (i=0; i<k; i++){
-          freq[i] = A->G2numMuts[genes[i]]; // assign freq for k genes                   
-        }
-              
-        permute_count = comet_permutation_test(k, permutation_iteration, n, genes, freq, ctbl);        
-        if  (permute_count == 0.0 ){
-          *score = -log(pow(binom_pval, mcmc_amp));    
-          *func = 2;
-        } 
-        else{ 
-          *score = -log(pow(permute_count/permutation_iteration, mcmc_amp));
-          *func = 3;
-        }
-      }  
-      else{
-        *score = -log(pow(exact_pval, mcmc_amp));
-        *func = 1;
-      }
-    }
-  } else{    
-    *score = -log(pow(comet_exact_test(k, n, ctbl, &final_num_tbls, 1.1), mcmc_amp)); 
-    *func = 1;
-  }
-  
-}
-
-// Sort a pair of integers in ascending order
-int ascending(const void * elem1, const void * elem2){
-    int f = *((int*)elem1);
-    int s = *((int*)elem2);
-    if (f > s) return  1;
-    if (f < s) return -1;
-    return 0;
-}
-
 
 int getFunction(int *set, int t_i, int *ks, int *gi_sum){
   geneset_t *key;
@@ -152,8 +80,8 @@ double getWeight(int *set, int t_i, int *ks, int *gi_sum, int** kelem, int n, mu
     if(dendrix(ctbl, k) > 0){
       double score;
       int func;
-      W(key->genes, k, n, A, ctbl, kelem, &score, &func);
-      w->weight = score;
+      comet_phi(key->genes, k, n, A, ctbl, kelem, &score, &func, co_cutoff, permutation_iteration, binom_pvalthreshold, pvalthresh);
+      w->weight = -log(pow(score, mcmc_amp));
       w->function = func;
       HASH_ADD( hh, weightHash, id, sizeof(geneset_t), w );  /* id: name of key field */
       dendrix_pass = true;
