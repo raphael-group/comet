@@ -1,39 +1,35 @@
-subroutine nth_one(loc, arr, dim, t, num, m, n)
+subroutine nth_one(pos, arr, index, t, num, m, n)
   implicit none
 
-  integer, intent(in) :: num, m, n, dim, t
+  integer, intent(in) :: num, m, n, index, t
   integer, intent(in) :: arr(m, n)
-  integer, intent(out) :: loc
-  integer :: count, i, length
+  integer :: total, i, pos
 
-  count = 0
-  i = 1
+  total = 0
 
+  ! If we are searching in a row
   if (t .eq. 0) then
-     length = n
+     do i=1, n
+        if (arr(index, i) .eq. 1) then
+           total = total + 1
+        end if
+        if (total .eq. num) then
+           pos = i
+           exit
+        end if
+     end do
+  ! Otherwise we're searching in a column
   else
-     length = m
+     do i=1, m
+        if (arr(i, index) .eq. 1) then
+           total = total + 1
+        end if
+        if (total .eq. num) then
+           pos = i
+           exit
+        end if
+     end do
   end if
-  
-  do while (i <= length)
-     ! If we are searching in a row
-     if (t .eq. 0) then
-        if (arr(dim, i) .eq. 1) then
-           count = count + 1
-        end if
-     ! Otherwise we're searching in a column
-     else
-        if (arr(i, dim) .eq. 1) then
-           count = count + 1
-        end if
-     end if
-     ! Exit when we've found the location of the num-th one
-     if (count .eq. num) then
-        loc = i
-        exit
-     end if
-     i = i + 1
-  end do
 end subroutine nth_one
 
 subroutine bipartite_edge_swap(B, A, degrees, nswap, max_tries, m, n, num_nodes)
@@ -44,7 +40,7 @@ subroutine bipartite_edge_swap(B, A, degrees, nswap, max_tries, m, n, num_nodes)
     integer, intent(in) :: A(m,n), degrees(num_nodes)
     integer, intent(out) :: B(m,n)
     integer :: u, v, x1, y1, x2, y2, swapcount, iter
-    real :: r(4)
+    double precision :: r(4)
 
     ! Initialize the permuted
     B = A
