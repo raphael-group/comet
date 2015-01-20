@@ -72,16 +72,13 @@ subroutine cdf(output, arr, n)
   integer, intent(in) :: n
   integer, intent(in) :: arr(n)
   integer :: i
-  double precision :: output(n), mass(n)
-  double precision :: prev, total
+  double precision :: output(n)
 
-  total = dble(sum(arr))
-  mass = dble(arr) / total
-  prev = 0
-  do i=1, n
-     output(i) = mass(i) + prev
-     prev = output(i)
+  output(1) = arr(1)
+  do i=2,n
+     output(i) = arr(i) + output(i-1)
   end do
+  output = output / sum(arr)
 end subroutine cdf
 
 subroutine bipartite_edge_swap(B, A, x_degrees, y_degrees, nswap, max_tries, seed, m, n)
