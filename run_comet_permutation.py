@@ -8,21 +8,25 @@ import run_comet as RC
 def get_parser():
     # Parse arguments
     import argparse
-    description = 'Runs CoMEt on a directory of permuted matrices.'
+    description = 'Runs CoMEt on permuted matrices.'
     parser = argparse.ArgumentParser(description=description)
 
     # General parameters
-    parser.add_argument('-o', '--output_prefix', required=True,
-                        help='Output path prefix (TSV format).')
+    parser.add_argument('-o', '--output_directory', required=True,
+                        help='Output directory.')
     parser.add_argument('-v', '--verbose', default=True, action="store_true",
                         help='Flag verbose output.')
     parser.add_argument('--seed', default=int(time.time()), type=int,
                         help='Set the seed of the PRNG.')
     parser.add_argument('--parallel', default=False, action='store_true',
                         help='Use multiprocessing to run a job on each core.')
+    parser.add_argument('-np', '--num_permutations', required=True, type=int,
+                        help='Number of permuted matrices to use.')
+    parser.add_argument('--keep_temp_files', required=False, action='store_true', default=False,
+                        help='Keep temp files (CoMEt results and permuted matrices).')
 
     # Mutation data
-    parser.add_argument('-pmd', '--permuted_matrices_directory', required=True,
+    parser.add_argument('-m', '--mutation_matrix', required=True,
                         help='File name for mutation data.')
     parser.add_argument('-mf', '--min_freq', type=int, default=0, 
                         help='Minimum gene mutation frequency.')
@@ -30,8 +34,8 @@ def get_parser():
                         help='File of patients to be included (optional).')
     parser.add_argument('-gf', '--gene_file', default=None,
                         help='File of genes to be included (optional).')
-    parser.add_argument('-np', '--num_permutations', required=True, type=int,
-                        help='Number of permuted matrices to use.')
+    parser.add_argument('-q', '--Q', type=int, default=100,
+                            help='Edge swapping parameter.')
 
     # Comet
     parser.add_argument('-ks', '--gene_set_sizes', nargs="*", type=int, required=True,
@@ -65,39 +69,90 @@ def runComet(cometArgs):
     return RC.run( RC.get_parser().parse_args(cometArgs) )
 
 def run( args ):
+    # Load mutation data using Multi-Dendrix and output as a temporary file
+    mutations = C.load_mutation_data(args.mutation_matrix, args.patient_file,
+                                     args.gene_file, args.min_freq)
+    m, n, genes, patients, geneToCases, patientToGenes = mutations
+    
+    if args.verbose:
+        print '* Mutation data: %s genes x %s patients' % (m, n)
+
+    # Construct bipartite graph from mutation data
+    if args.verbose: print "* Creating bipartite graph..."
+    G = C.construct_mutation_graph(geneToCases, patientToGenes)
+    if args.verbose:
+        print '\t- Graph has', len( G.edges() ), 'edges among', len( G.nodes() ), 'nodes.'
+        
     # Set up the arguments for a general CoMEt run 
     cometArgs = []
-    permuteFlags = ["-pmd", "-np", "--parallel"]
+    permuteFlags = ["-np", "--parallel", "--keep_temp_files", "-m", "-o"]
     for i, arg in enumerate(sys.argv[1:]):
         if arg not in permuteFlags and sys.argv[i] not in permuteFlags:
             cometArgs.append( arg )
-    # Identify the permuted matrix files
-    filenames = [ f for f in os.listdir(args.permuted_matrices_directory) ]
-    filenames = filenames[:min(args.num_permutations, len(filenames))]
-    if len(filenames) < args.num_permutations:
-        sys.stderr.write("Fewer permuted matrices ({}) than number of permutations requested ({}).\n".format(len(filenames)), args.num_permutations)
-    n = len(filenames)
 
-    # Run each matrix through CoMEt
+    # Create a permuted matrix, and then run it through CoMEt
+    import tempfile
     arguments = []
-    for i, f in enumerate(filenames):
+    if args.keep_temp_files:
+        directory = args.output_directory
+    else:
+        directory = tempfile.mkdtemp(dir=".", prefix=".tmp")
+
+    for i in range(args.num_permutations):
         # Print simple progress bar
         sys.stdout.write("* Running CoMEt on permuted matrices... {}/{}\r".format(i+1, n))
         sys.stdout.flush()
 
+        # Create a permuted dataset and save it a temporary file
+        mutations = C.permute_mutation_data(G, genes, patients, args.seed, args.Q)
+        _, _, _, _, geneToCases, patientToGenes = mutations
+        adj_list = [ p + "\t" + "\t".join( sorted(patientToGenes[p]) ) for p in patients ]
+        
+	permutation_file = "{}/permuted-matrix-{}.m2".format(directory, i+1)
+        with open(permutation_file, 'w') as outfile: outfile.write('\n'.join(adj_list))
+        
         # Add the new arguments
         permuteArgs = map(str, cometArgs)
-        permuteArgs += [ "-m", "{}/{}".format(args.permuted_matrices_directory, f)]
-        permuteArgs += [ "-o", "{}/{}".format(args.output_prefix, f)]
+        permuteArgs += [ "-m", permutation_file ]
+        permuteArgs += [ "-o", "{}/comet-results-on-permutation-{}".format(directory, i+1)]
         arguments.append( permuteArgs )
 
     if args.parallel:
         pool = mp.Pool(25)
-        pool.map(runComet, arguments)
+        results = pool.map(runComet, arguments)
         pool.close()
         pool.join()
     else:
-        for permuteArgs in arguments:
-            runComet(permuteArgs)
+        results = [ runComet(permuteArgs) for permuteArgs in arguments ]
+
+    # Find the maximum test statistic on the permuted datasets
+    from itertools import islice
+    maxStat = 0
+    for rf in [ rf for rf in os.listdir(directory) if rf.startswith("comet-results") ]:
+        with open("{}/{}".format(directory, rf)) as infile:
+    	    for line in islice(infile, 1, 2):
+                score = float(line.split("\t")[1])
+                if score > maxStat:
+                    maxStat = score
+
+    print "*" * 80
+    print "Number of permutations:", args.num_permutations
+    print "Max statistic:", maxStat
+
+    # Output the results to files
+    with open("{}/comet-stats.json".format(args.output_directory), "w") as outfile:
+        output = dict(maxPermutedWeight=maxStat,
+                      numPermutations=args.num_permutations,
+                      keepTempFiles=args.keep_temp_files,
+                      mutationNatrix=args.mutation_matrix,
+                      geneFile=args.gene_file, patientFile=args.patient_file,
+                      minFreq=args.min_freq, Q=args.Q)
+        json.dump( output, outfile, sort_keys=True, indent=4)
+
+    # Destroy the temporary directory if necessary
+    if not args.keep_temp_files:
+        import shutil
+        shutil.rmtree(directory)
+    
 
 if __name__ == "__main__": run( get_parser().parse_args(sys.argv[1:]) )

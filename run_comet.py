@@ -116,9 +116,9 @@ def comet(mutations, n, t, ks, numIters, stepLen, initialSoln,
 
 def iter_num (prefix, numIters, ks, acc):
 
-	if numIters >= 1e9: iterations = "%sB" % (numIters / 1e9)
-	elif numIters >= 1e6: iterations = "%sM" % (numIters / 1e6)
-	elif numIters >= 1e3: iterations = "%sK" % (numIters / 1e3)
+	if numIters >= 1e9: iterations = "%sB" % (numIters / int(1e9))
+	elif numIters >= 1e6: iterations = "%sM" % (numIters / int(1e6))
+	elif numIters >= 1e3: iterations = "%sK" % (numIters / int(1e3))
 	else: iterations = "%s" % numIters
 	
 	prefix += ".k%s.%s.%s" % ("".join(map(str, ks)), iterations, acc)

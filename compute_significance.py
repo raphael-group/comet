@@ -9,25 +9,6 @@ from itertools import combinations as combos
 from math import factorial
 
 ###############################################################################
-# Compute the max weight from a directory of CoMEt results files
-def find_max_weight(permutedDir):
-    # Identify the CoMEt files (those ending in .tsv)
-    from itertools import islice
-    permutedFiles = [ f for f in os.listdir( permutedDir ) if f.lower().endswith(".tsv")]
-    maxStat = 0.
-
-    # For each file, take the second line which has the top
-    # collection by weight, and extract its weight
-    for f in permutedFiles:
-        with open("{}/{}".format(permutedDir, f)) as infile:
-    	    for line in islice(infile, 1, 2):
-	            score = float(line.split("\t")[1])
-	            if score > maxStat:
-	                maxStat = score
-
-    return maxStat, len(permutedFiles)
-
-###############################################################################
 # Delta selection functions
 # TODO: HSIN-TA: PLEASE ADD COMMENTS TO NEXT THREE FUNCTIONS BELOW
 
@@ -102,6 +83,7 @@ def choose_delta( deltas, realDist, passPoint, stdCutoff):
 	lastSlopeI = 0. # for storing the index of elbow point
 	while True:
 		# define a line based on small standard mean error
+                iS = 0
 		for j in range(2, len(logX)):
 			iS = i-j+1
 			iE = i+1
@@ -287,39 +269,39 @@ def get_parser():
 
 	# CoMEt output
 	parser.add_argument('-i', '--input_file', required=True, type=str,
-						help='Input file of CoMEt TSV output.')
-	parser.add_argument('-pd', '--permuted_dir', default=None, 
-						help='Directory with permuted data in tsv.')
+                            help='Input file of CoMEt TSV output.')
+	parser.add_argument('-csf', '--comet_stats_file', default=None, 
+                            help='CoMEt stats file (output of `run_comet_permutation.py`).')
 
 	# General
 	parser.add_argument('-o', '--output_directory', required=True, type=str,
-						help='Path to output directory.')
+                            help='Path to output directory.')
 	parser.add_argument('-v', '--verbose', default=False, action='store_true',
-						help='Flag verbose output.')
+                            help='Flag verbose output.')
 
 	# Mutation data
 	parser.add_argument('-m', '--mutation_matrix', required=True,
-						help='File name for mutation data.')
+                            help='File name for mutation data.')
 	parser.add_argument('-mf', '--min_freq', type=int, default=0,
-						help='Minimum gene mutation frequency.')
+                            help='Minimum gene mutation frequency.')
 	parser.add_argument('-pf', '--patient_file', default=None,
-						help='File of patients to be included.')
+                            help='File of patients to be included.')
 	parser.add_argument('-gf', '--gene_file', default=None,
-						help='File of genes to be included.')
+                            help='File of genes to be included.')
 	parser.add_argument('-e', '--event_names', default=None,
-						help='File mapping genes/events to new names (optional).')
+                            help='File mapping genes/events to new names (optional).')
 	parser.add_argument('-st', '--sample_types_file', default=None,
-						 help='File mapping samples to cancer types.')
-
+                            help='File mapping samples to cancer types.')
+        
 	# Marginal probability graph
 	parser.add_argument('-mew', '--minimum_edge_weight', type=float, default=0.001,
-						help='Minimum edge weight.')
+                            help='Minimum edge weight.')
 	parser.add_argument('-msf', '--minimum_sampling_frequency', type=float, default=50,
-					   help='Minimum sampling frequency for a gene set to be included.')
+                            help='Minimum sampling frequency for a gene set to be included.')
 	parser.add_argument('-tf', '--template_file', default="comet/src/html/template.html",
-						type=str, help='Template file (HTML). Change at your own risk.')
+                            type=str, help='Template file (HTML). Change at your own risk.')
 	parser.add_argument('-rmse', '--standard_error_cutoff', default=0.01, type=float,
-					   help='maximum standard error cutoff to consider a line')
+                            help='maximum standard error cutoff to consider a line')
 
 	return parser
 
@@ -334,7 +316,7 @@ def run( args ):
 	minFreq        = args.min_freq
 	msf            = args.minimum_sampling_frequency
 	inputFile      = args.input_file
-	permutedDir    = args.permuted_dir
+	statsFile      = args.comet_stats_file
 	sec            = args.standard_error_cutoff
 	mew            = args.minimum_edge_weight
 
@@ -346,8 +328,10 @@ def run( args ):
 	###########################################################################
 	# Compute max weight from random data if users provide random data.
 	# Otherwise, maxPermutedWeight = 0
-	if permutedDir:
-		maxPermutedWeight, N = calculate_significance(permutedDir)
+	if statsFile:
+                with open(statsFile) as f:
+                    obj = json.load(f)
+                    maxPermutedWeight, N = obj['maxPermutedWeight'], obj['numPermutations']
 	else:
 		maxPermutedWeight, N = 0, 0
 
