@@ -7,6 +7,7 @@ from math import exp
 # Try loading Multi-Dendrix
 try:
     import multi_dendrix as multi_dendrix
+    importMultidendrix = True
 except ImportError:
     importMultidendrix = False
     sys.stderr.write("Warning: The Multi-Dendrix Python module could not"\
@@ -93,6 +94,13 @@ def comet(mutations, n, t, ks, numIters, stepLen, initialSoln,
         return " ".join(sorted([",".join(sorted(M)) for M in collection]))
 
     results = dict()
+    # store last soln of sampling for more iterations
+    # lastSoln = set().union(*solnsWithWeights[-1][0])
+    lastSoln = list()
+    for gset in solnsWithWeights[-1][0]:
+        for g in gset:
+            lastSoln.append(g)
+
     for collection, Ws, Cs in solnsWithWeights:
         
         key = collection_key(collection)
@@ -113,7 +121,7 @@ def comet(mutations, n, t, ks, numIters, stepLen, initialSoln,
                                 target_weight=targetWeight)
         
     
-    return results
+    return results, lastSoln
 
 def iter_num (prefix, numIters, ks, acc):
 
@@ -128,14 +136,16 @@ def iter_num (prefix, numIters, ks, acc):
 def call_multidendrix(mutations, k, t):
     alpha, delta, lmbda = 1.0, 0, 1 # default of multidendrix
     geneSetsWithWeights = multi_dendrix.ILP( mutations, t, k, k, alpha, delta, lmbda)
-    multiset = set()
+    multiset = list()
     for geneSet, W in geneSetsWithWeights:
-        multiset.update(geneSet)
+        for g in geneSet:
+            multiset.append(g)
     return multiset
 
 
 def initial_solns_generator(r, mutations, ks, assignedInitSoln, subtype):
     runInit = list()
+    totalOut = list()
     
     if assignedInitSoln:
         if len(assignedInitSoln) == sum(ks):
@@ -151,7 +161,7 @@ def initial_solns_generator(r, mutations, ks, assignedInitSoln, subtype):
 
     if importMultidendrix and not subtype and ks.count(ks[0])==len(ks): 
 
-        md_init = call_multidendrix(mutations, ks[0], t)
+        md_init = call_multidendrix(mutations, ks[0], len(ks))
         print ' load multi-dendrix solns', md_init
         runInit.append(list(md_init))
 
@@ -159,7 +169,10 @@ def initial_solns_generator(r, mutations, ks, assignedInitSoln, subtype):
     for i in range(len(runInit), r):
         runInit.append(list())
 
-    return runInit
+    for i in range(r):
+        totalOut.append(dict())
+
+    return runInit, totalOut
 
 def load_precomputed_scores(infile, mutations, subt):
     
@@ -203,6 +216,14 @@ def merge_results(convResults):
 
     return total
 
+def merge_runs(resultsPre, resultsNew):
+    
+    for key in resultsNew.keys():
+        if key in resultsPre: 
+            resultsPre[key]["freq"] += resultsNew[key]["freq"]
+        else:
+            resultsPre[key] = resultsNew[key]    
+
 def run( args ):
     # Parse the arguments into shorter variable handles
     mutationMatrix = args.mutation_matrix
@@ -245,30 +266,34 @@ def run( args ):
     # num_initial > 1, perform convergence pipeline, otherwise, perform one run only
     if args.num_initial > 1:   
         # collect initial soln from users, multidendrix and random.      
-        initialSolns = initial_solns_generator(args.num_initial, mutations, ks, args.initial_soln, subSet )
-        while True:
-            convResults = list()
-            for init in initialSolns:
-                outresults = comet(mutations, n, t, ks, N, s, init, acc, subSet, nt, hybridCutoff, args.exact_cut, True)  
-                convResults.append(outresults)
+        initialSolns, totalOut = initial_solns_generator(args.num_initial, mutations, ks, args.initial_soln, subSet )        
+        runN = N
+        while True:            
+            lastSolns = list()            
+            for i in range(len(initialSolns)):
+                init = initialSolns[i]                
+                outresults, lastSoln = comet(mutations, n, t, ks, runN, s, init, acc, subSet, nt, hybridCutoff, args.exact_cut, True)                                  
+                merge_runs(totalOut[i], outresults)                                                
+                lastSolns.append(lastSoln)
 
-            finalTv = C.discrete_convergence(convResults, int(N/s))
+            finalTv = C.discrete_convergence(totalOut, int(N/s))
             print finalTv, N
-                
+            
             newN = int(N*NInc)
             if newN > NStop or finalTv < args.total_distance_cutoff: 
                 break        
+            runN = newN - N
             N = newN
-            del convResults[:]          
-
-        runNum = len(convResults)   
-        results = merge_results(convResults)
+            initialSolns = lastSolns
+                        
+        runNum = len(totalOut)           
+        results = merge_results(totalOut)
         printParameters(args, ks, finalTv) # store and output parameters into .json
         
 
     else:
         init = list()            
-        outresults = comet(mutations, n, t, ks, N, s, init, acc, subSet, nt, hybridCutoff, args.exact_cut, True)
+        outresults, lastSoln = comet(mutations, n, t, ks, N, s, init, acc, subSet, nt, hybridCutoff, args.exact_cut, True)
         results = outresults
         runNum = 1
         printParameters(args, ks, 1) 
