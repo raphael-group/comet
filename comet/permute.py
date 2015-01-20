@@ -94,15 +94,18 @@ def graph_to_mutation_data(H, genes, patients):
 def permute_mutation_data(G, genes, patients, seed, Q=100):
         if fortranBindings:
                 # Compute the desired pieces of the graph structure
-                degrees = [ G.degree(n) for n in genes + patients ]
-                A = np.array(biadjacency_matrix(G, row_order=genes,
-                                                column_order=patients,
+                xs = sorted(genes, key=G.degree, reverse=True)
+                ys = sorted(patients, key=G.degree, reverse=True)
+                x_degrees = [ G.degree(x) for x in xs ]
+                y_degrees = [ G.degree(y) for y in ys ]
+                A = np.array(biadjacency_matrix(G, row_order=xs,
+                                                column_order=ys,
                                                 dtype=np.int32))
                 
                 # Set up and call the permute matrix function
-                B = bipartite_edge_swap(A, degrees, len(G.edges()) * Q, 1e75, seed=seed)
+                B = bipartite_edge_swap(A, x_degrees, y_degrees, len(G.edges()) * Q, 1e75, seed=seed)
                 H = nx.Graph()
-                H.add_edges_from([ (genes[u], patients[v]) for u, v in zip(*np.where(B == 1)) ])
+                H.add_edges_from([ (xs[u], ys[v]) for u, v in zip(*np.where(B == 1)) ])
         else:
                 H = G.copy()
                 random.seed(seed)
