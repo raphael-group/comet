@@ -80,7 +80,7 @@ def convert_solns(indexToGene, solns):
 def comet(mutations, n, t, ks, numIters, stepLen, initialSoln, 
           amp, subt, nt, hybridPvalThreshold, pvalThresh, verbose):    
     # Convert mutation data to C-ready format
-    if subt: mutations = mutations + (subt)
+    if subt: mutations = mutations + (subt, )
     cMutations = C.convert_mutations_to_C_format(*mutations)
     iPatientToGenes, iGeneToCases, geneToNumCases, geneToIndex, indexToGene = cMutations
     initialSolnIndex = [geneToIndex[g] for g in initialSoln]
@@ -95,7 +95,6 @@ def comet(mutations, n, t, ks, numIters, stepLen, initialSoln,
 
     results = dict()
     # store last soln of sampling for more iterations
-    # lastSoln = set().union(*solnsWithWeights[-1][0])
     lastSoln = list()
     for gset in solnsWithWeights[-1][0]:
         for g in gset:
@@ -247,7 +246,7 @@ def run( args ):
     m, n, genes, patients, geneToCases, patientToGenes = mutations
     
     if args.subtype:
-        with open(open(args.subtype)) as f:
+        with open(args.subtype) as f:
             subSet = [ l.rstrip() for l in f ]
     else:
         subSet = list()
