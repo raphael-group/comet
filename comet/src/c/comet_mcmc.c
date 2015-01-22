@@ -9,13 +9,14 @@
 /*****************************************************************************/
 /* Computing the weight */
 int lookups = 0;
+int insertToHash = 0;
 int calculations = 0;
 double pvalthresh = 0.001;
 int mcmc_amp = 2;
 int permutation_iteration = 1000;
 int co_cutoff = 10;
 double binom_pvalthreshold = 0.005;
-bool dendrix_pass = false;
+bool dendrix_pass = false; // check if dendrix score > 0 (if not, it means highly co-occurrence in the set. Set score as 0.0)
 
 int compute_num_co(int *ctbl, int k){  
   int *co_cells, num_co_cells=pow(2, k)-k-1, numcells;
@@ -40,6 +41,7 @@ int getFunction(int *set, int t_i, int *ks, int *gi_sum){
   qsort(key->genes, k, sizeof(int), ascending);
   HASH_FIND(hh, weightHash, key, sizeof(geneset_t), w);  /* id already in the hash? */
   if (w == NULL){
+    free(key);
     return 0;
   }
   else{
@@ -59,6 +61,7 @@ double getWeight(int *set, int t_i, int *ks, int *gi_sum, int** kelem, int n, mu
   int k = end-start;
   int num_entries = 1 << k;  
   int ctbl[num_entries];      
+  double returnW;
   
   // Generate the key by sorting the arr
   key = malloc( sizeof(geneset_t) );
@@ -73,31 +76,43 @@ double getWeight(int *set, int t_i, int *ks, int *gi_sum, int** kelem, int n, mu
   if (w == NULL) {
     calculations += 1;
     w = malloc(sizeof(weight_t));
-    w->id = *key;
-    //w->weight = W(start, k, n, A, set);
+    w->id = *key;    
     contingency_tbl_gen(A, k, ctbl, key->genes); 
 
     if(dendrix(ctbl, k) > 0){
       double score;
       int func;
       comet_phi(key->genes, k, n, A, ctbl, kelem, &score, &func, co_cutoff, permutation_iteration, binom_pvalthreshold, pvalthresh);
-      w->weight = -log(pow(score, mcmc_amp));
+      returnW = -log(pow(score, mcmc_amp));
+      w->weight = returnW;
       w->function = func;
-      HASH_ADD( hh, weightHash, id, sizeof(geneset_t), w );  /* id: name of key field */
+      if (func == 1 || func == 3){ // store weight only if from permutation test and exact test with enumerating table > x      
+        insertToHash += 1;
+        HASH_ADD( hh, weightHash, id, sizeof(geneset_t), w );  /* id: name of key field */
+      }
+      else{ // otherwise, free memory of key and w
+        free(key);
+        free(w);
+      }
       dendrix_pass = true;
     }
     else{      
-      w->weight = 0.0;
-      HASH_ADD( hh, weightHash, id, sizeof(geneset_t), w );  /* id: name of key field */
+      returnW = 0.0;
+      free(key);
+      free(w);      
+      // HASH_ADD( hh, weightHash, id, sizeof(geneset_t), w );  /* id: name of key field */
     }
+
   }
   else{
     lookups += 1;
     dendrix_pass = true;
+    returnW = w->weight;
+    free(key);
   }
 
   // Return the gene set's weight
-  return w->weight;
+  return returnW;
 }
 
 void delete_all(){
@@ -210,7 +225,6 @@ void comet_mcmc(mutation_data_t *A, int m, int n, int *ks, int t, int num_iters,
   clock_t begin = clock(), end;
 
   // group index for indexing irregular ks, e.g. ks = [4,3,3], group_index[[0,1,2,3],[4,5,6],[7,8,9]]  
-  
   int *group_index_sum;    
   group_index_sum = malloc(sizeof(int) * t);
   for (i=0; i < t; i++){
@@ -233,9 +247,9 @@ void comet_mcmc(mutation_data_t *A, int m, int n, int *ks, int t, int num_iters,
   binom_pvalthreshold = binom_cutoff;
   pvalthresh = pval_cutoff;
   permutation_iteration = (int)(1/pvalthresh);
-
-  //printf("mcmc_amp: %d, permutation_times: %d, co-occ cutoff: %d, binom-p cutoff :%e.\n", mcmc_amp, permutation_iteration, co_cutoff, binom_pvalthreshold);
+  
   // Allocations
+  // set: store current collection of t sets of k genes
   set          = malloc(sizeof(int) * num_genes);
   weights      = malloc(sizeof(weights[0]) * t);
   next_weights = malloc(sizeof(next_weights[0]) * t);
@@ -257,12 +271,12 @@ void comet_mcmc(mutation_data_t *A, int m, int n, int *ks, int t, int num_iters,
   step_index = 0;  
   for (i = 0; i < num_iters; i++){
     while(1){
-      next_gene        = (double) (rand() % m);
-      to_exchange      = rand() % num_genes;
-      set_to_exchange  = get_set_to_exchange(to_exchange, t, group_index_sum);
-      gene_index       = indexOf(next_gene, set, num_genes);
-      exchanged        = set[to_exchange];
-      other_set_to_exchange = get_set_to_exchange(gene_index, t, group_index_sum);  
+      next_gene        = (double) (rand() % m); // sampling a new gene
+      to_exchange      = rand() % num_genes; // sampling a location to exchange
+      set_to_exchange  = get_set_to_exchange(to_exchange, t, group_index_sum); // get the location of the set of to_exchange
+      gene_index       = indexOf(next_gene, set, num_genes); // find out the next gene is in the current collection or not, -1 as not
+      exchanged        = set[to_exchange]; // get gene index of a gene to exchange
+      other_set_to_exchange = get_set_to_exchange(gene_index, t, group_index_sum);  // get the location of the set of next gene (if in the current collection)
       
       if(size_subtype == 0){
         break;
@@ -272,25 +286,26 @@ void comet_mcmc(mutation_data_t *A, int m, int n, int *ks, int t, int num_iters,
           break;                  
       }        
     }
-    dendrix_pass     = false;      
+    
     // Construct the next solution
-    if (gene_index != -1){ // next_gene is in current set
+    dendrix_pass     = false;    
+    if (gene_index != -1){ // next gene is in current set, swapped
       set[gene_index]  = exchanged;
     }
     set[to_exchange] = next_gene;
 
-    // Update the weights
+    // Update the weights of the set with inserted next gene
     copyArr(weights, next_weights, t); // copy a -> b
     next_weights[set_to_exchange] = getWeight(set, set_to_exchange, ks, group_index_sum, k_elem, n, A);    
     
-    if (dendrix_pass && gene_index != -1){ 
+    if (dendrix_pass && gene_index != -1){ // swapped, need to update another set with exchanged gene
       other_set_to_exchange = get_set_to_exchange(gene_index, t, group_index_sum);
       if (set_to_exchange != other_set_to_exchange){
         next_weights[other_set_to_exchange] = getWeight(set, other_set_to_exchange, ks, group_index_sum, k_elem, n, A);
       }
     }
-    if (dendrix_pass){
-      
+
+    if (dendrix_pass){      
       next_weight = sum(next_weights, t);
       // Transition to the next state pseudorandomly based on the acceptance ratio
       //log_acceptance_prob = c * next_weight - c * current_weight;
@@ -304,12 +319,14 @@ void comet_mcmc(mutation_data_t *A, int m, int n, int *ks, int t, int num_iters,
         num_swapped += 1;
       }
       else{
-        dendrix_pass = false;
+        if (gene_index != -1){
+          set[gene_index] = next_gene;
+        }
+        set[to_exchange] = exchanged; // Undo the swap      
       }
     }
-    
-    if (!dendrix_pass){ 
-      // dendrix < 0 or didn't pass acceptance ratio      
+    else{
+      // dendrix < 0 
       if (gene_index != -1){
         set[gene_index] = next_gene;
       }
@@ -343,6 +360,7 @@ void comet_mcmc(mutation_data_t *A, int m, int n, int *ks, int t, int num_iters,
            num_iters, num_within_swap);
     printf("  - Look ups: %d\n", lookups);
     printf("  - Unique gene sets: %d\n", calculations);
+    printf("  - Hashed gene sets: %d\n", insertToHash);
     end = clock();
     printf("  - MCMC runtime: %f secs\n", (double)(end - begin) / CLOCKS_PER_SEC);
   }

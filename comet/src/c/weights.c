@@ -477,7 +477,8 @@ void comet_phi(int *genes, int k, int n, mutation_data_t *A, int *ctbl, int** ke
     ctbl: contingency table, for exact and binom test
     kelem: index of co-occurring cells in 2^k ctbl
     &score: output phi
-    &func: index for weight function that is used for calculating the phi
+    &func: index for weight function that is used for calculating the phi 
+    (1: exact, 2: binom, 3: permutation, 4: exact with fewer 100 tables)
     co_cutoff: cutoff for co-occurring (determine binom test will be a good approximation for exact test)
     permutation_iteration: number of permutation test
     binom_pvalthresh: cutoff for binom test
@@ -488,6 +489,7 @@ void comet_phi(int *genes, int k, int n, mutation_data_t *A, int *ctbl, int** ke
   int final_num_tbls; // store number of enumerating tables
   int i, conum=0; // num of cooccurring mutations
   int freq[k]; // for permutation test
+  int numTableCutoff = 100;
 
   if (k > 3){ // heuristic pipeline when k > 3    
     
@@ -517,14 +519,23 @@ void comet_phi(int *genes, int k, int n, mutation_data_t *A, int *ctbl, int** ke
       }  
       else{
         *score = exact_pval;
-        *func = 1;
+        if (final_num_tbls > numTableCutoff){
+          *func = 1;
+        }
+        else{
+          *func = 4;
+        }
       }
     }
   } else{    
     *score = comet_exact_test(k, n, ctbl, &final_num_tbls, 1.1);
-    *func = 1;
+    if (final_num_tbls > numTableCutoff){
+      *func = 1;
+    }
+    else{
+      *func = 4;
+    }
   }
-  
 }
 
 

@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 # Load required modules
-import sys, os, json, re, time, comet as C
+import sys, os, json, re, time, comet as C, resource
 from math import exp
 
 # Try loading Multi-Dendrix
@@ -272,6 +272,7 @@ def run( args ):
             for i in range(len(initialSolns)):
                 init = initialSolns[i]                
                 outresults, lastSoln = comet(mutations, n, t, ks, runN, s, init, acc, subSet, nt, hybridCutoff, args.exact_cut, True)                                  
+                print "Mem usage: ", resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1000
                 merge_runs(totalOut[i], outresults)                                                
                 lastSolns.append(lastSoln)
 
