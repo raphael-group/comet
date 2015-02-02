@@ -175,7 +175,7 @@ def initial_solns_generator(r, mutations, ks, assignedInitSoln, subtype):
 
 def load_precomputed_scores(infile, mutations, subt):
     
-    if subt: mutations = mutations + (subt)
+    if subt: mutations = mutations + (subt,)
     cMutations = C.convert_mutations_to_C_format(*mutations)
     iPatientToGenes, iGeneToCases, geneToNumCases, geneToIndex, indexToGene = cMutations    
 

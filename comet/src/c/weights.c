@@ -489,7 +489,7 @@ void comet_phi(int *genes, int k, int n, mutation_data_t *A, int *ctbl, int** ke
   int final_num_tbls; // store number of enumerating tables
   int i, conum=0; // num of cooccurring mutations
   int freq[k]; // for permutation test
-  int numTableCutoff = 100;
+  int numTableCutoff = 0;
 
   if (k > 3){ // heuristic pipeline when k > 3    
     
