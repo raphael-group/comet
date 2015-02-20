@@ -31,6 +31,8 @@ def load_mutation_data(filename, patientFile=None, geneFile=None, minFreq=0):
     if geneFile:
         with open(geneFile) as f:
             genes = set( l.rstrip().split()[0] for l in f if not l.startswith("#") )
+    else:
+        genes = set()
 
     # Parse the mutation matrix
     from collections import defaultdict
@@ -42,12 +44,13 @@ def load_mutation_data(filename, patientFile=None, geneFile=None, minFreq=0):
 
             if not patients or patient in patients:
                 if genes: mutations &= genes
-                else: genes |= mutations
-                
+                #else: genes |= mutations                
+
                 patientToGenes[patient] = mutations
                 for gene in mutations:
                     geneToCases[gene].add(patient)
 
+    genes = geneToCases.keys()
     # Remove genes with fewer than min_freq mutations
     toRemove = [ g for g in genes if len(geneToCases[g]) < minFreq ]
     for g in toRemove:
@@ -72,7 +75,14 @@ def adj_dict_to_lists(xs, ys, d):
 
 def convert_mutations_to_C_format(m, n, genes, patients, geneToCases, patientToGenes, subtypes=None):
     """We convert the dictionaries to list of lists so they're easier to parse in C."""
-    if subtypes: genes += subtypes
+
+    if subtypes: 
+        newg = set(genes).difference(set(subtypes))
+        genes = list(newg)
+        for s in subtypes:
+            genes.append(s)
+        #genes += subtypes
+        
     geneToIndex = dict(zip(genes, range(m)))
     indexToGene = dict(zip(range(m), genes))
     iPatientToGenes = adj_dict_to_lists(patients, genes, patientToGenes)

@@ -468,6 +468,77 @@ double comet_binomial_co_test(int k, int N, int *tbl, double pvalthresh){
 }
 
 
+void comet_phi(int *genes, int k, int n, mutation_data_t *A, int *ctbl, int** kelem, double *score, int *func, int co_cutoff, int permutation_iteration, double binom_pvalthresh, double exact_pvalthresh){
+  /* 
+    key->genes: genes in the set, for permutation test
+    k: the number of genes
+    n: the number of total samples
+    A: mutation data, for permutation test
+    ctbl: contingency table, for exact and binom test
+    kelem: index of co-occurring cells in 2^k ctbl
+    &score: output phi
+    &func: index for weight function that is used for calculating the phi 
+    (1: exact, 2: binom, 3: permutation, 4: exact with fewer 100 tables)
+    co_cutoff: cutoff for co-occurring (determine binom test will be a good approximation for exact test)
+    permutation_iteration: number of permutation test
+    binom_pvalthresh: cutoff for binom test
+    exact_pvalthresh: cutoff for exact test (stop table enumeration if sum of table probabilities is larger than exac_pvalthresh)
+  */  
+  double permute_count = 0.0;
+  double binom_pval, exact_pval;
+  int final_num_tbls; // store number of enumerating tables
+  int i, conum=0; // num of cooccurring mutations
+  int freq[k]; // for permutation test
+  int numTableCutoff = 0;
+
+  if (k > 3){ // heuristic pipeline when k > 3    
+    
+    binom_pval = comet_binomial_test(k, n, ctbl, 1.1);    
+    conum = sum_cells(ctbl, kelem[k-1], pow(2, k)-k-1 );   // num of cooccurring mutations 
+    if (conum  > co_cutoff || binom_pval > binom_pvalthresh){         
+        *score =binom_pval;
+        *func = 2;
+    }
+    else{     
+      exact_pval = comet_exact_test(k, n, ctbl, &final_num_tbls, exact_pvalthresh);
+      if (exact_pval == -1){ // stop when pval > 0.01, do permutation test
+    
+        for (i=0; i<k; i++){
+          freq[i] = A->G2numMuts[genes[i]]; // assign freq for k genes                   
+        }
+              
+        permute_count = comet_permutation_test(k, permutation_iteration, n, genes, freq, ctbl);        
+        if  (permute_count == 0.0 ){
+          *score = binom_pval;
+          *func = 2;
+        } 
+        else{ 
+          *score = permute_count/permutation_iteration;
+          *func = 3;
+        }
+      }  
+      else{
+        *score = exact_pval;
+        if (final_num_tbls > numTableCutoff){
+          *func = 1;
+        }
+        else{
+          *func = 4;
+        }
+      }
+    }
+  } else{    
+    *score = comet_exact_test(k, n, ctbl, &final_num_tbls, 1.1);
+    if (final_num_tbls > numTableCutoff){
+      *func = 1;
+    }
+    else{
+      *func = 4;
+    }
+  }
+}
+
+
 /* The dendrix weight function. */
 double dendrix(int *ctbl, int k) {
   int i, num_o;

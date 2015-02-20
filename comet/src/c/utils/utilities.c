@@ -15,6 +15,15 @@ double lnfac(int a){
     }
 }
 
+// Sort a pair of integers in ascending order
+int ascending(const void * elem1, const void * elem2){
+    int f = *((int*)elem1);
+    int s = *((int*)elem2);
+    if (f > s) return  1;
+    if (f < s) return -1;
+    return 0;
+}
+
 void precompute_factorials(int N){
     int i;
     lnfacs = malloc(sizeof(double) * (N+1));
