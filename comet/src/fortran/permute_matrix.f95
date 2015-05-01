@@ -58,7 +58,7 @@ function choice(dist, n, p)
   integer :: choice, i
 
   do i=1, n
-     if (dist(i) < p) then
+     if (dist(i) > p) then
         choice = i
         exit
      end if
@@ -137,7 +137,7 @@ subroutine bipartite_edge_swap(B, A, x_degrees, y_degrees, nswap, max_tries, see
        
     end do
 
-    if (iter > max_tries) then
+    if (iter >= max_tries) then
        print *, '[Warning] Bipartite edge swap: Maximum tries exceeded.'
     end if
 end subroutine bipartite_edge_swap

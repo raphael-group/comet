@@ -347,15 +347,16 @@ void comet_mcmc(mutation_data_t *A, int m, int n, int *ks, int t, int num_iters,
     
     /* Output a simple progress bar */
     if ( (verbose == 1) && (i % prog_step == 0) ){
-      steps = (int) 72. * i / num_iters;
+      steps = (int) 71. * i / num_iters;
       for (j = 0; j < steps; j++) printf("+");
-      for (j = 0; j < 72 - steps; j++) printf(" ");
+      for (j = 0; j < 71 - steps; j++) printf(" ");
       printf(" [ %d%% ]\r", (int) (100. * i / num_iters));
       fflush(stdout);
     }
   }
   if (verbose == 1){
-    printf("\n");
+    for (j = 0; j < 71; j++) printf("+");
+    printf(" [ 100%% ]\n");
     printf("  - Swapped percentage: %d / %d (%d within)\n", num_swapped,
            num_iters, num_within_swap);
     printf("  - Look ups: %d\n", lookups);

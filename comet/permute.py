@@ -15,7 +15,7 @@ except ImportError:
 # import the Python version
 try: 
         from permute_matrix import bipartite_edge_swap
-        fortranBindings = True
+        fortranBindings = False
 except ImportError:
         fortranBindings = False
         sys.stderr.write("[Warning] Could not import Fortran bipartite_edge_swap bindings.\n")
@@ -81,7 +81,7 @@ def construct_mutation_graph(geneToCases, patientToGenes):
 	return G
 
 def graph_to_mutation_data(H, genes, patients):
-	geneToCases, patientToGenes = dict([(g, set()) for g in genes]), dict( )
+	geneToCases, patientToGenes = dict((g, set()) for g in genes), dict( )
 	for patient in patients:
 		mutations = H[patient]
 		patientToGenes[patient] = set( mutations )
@@ -92,6 +92,7 @@ def graph_to_mutation_data(H, genes, patients):
 	return m, n, genes, patients, geneToCases, patientToGenes
 
 def permute_mutation_data(G, genes, patients, seed, Q=100):
+        print
         if fortranBindings:
                 # Compute the desired pieces of the graph structure
                 xs = sorted(genes, key=G.degree, reverse=True)
@@ -101,10 +102,11 @@ def permute_mutation_data(G, genes, patients, seed, Q=100):
                 A = np.array(biadjacency_matrix(G, row_order=xs,
                                                 column_order=ys,
                                                 dtype=np.int32))
-                
+
                 # Set up and call the permute matrix function
-                B = bipartite_edge_swap(A, x_degrees, y_degrees, len(G.edges()) * Q, 1e75, seed=seed)
+                B = bipartite_edge_swap(A, x_degrees, y_degrees, len(G.edges()) * Q, 1e9, seed=seed)
                 H = nx.Graph()
+                H.add_nodes_from( genes + patients ) # some patients/genes may have zero mutations
                 H.add_edges_from([ (xs[u], ys[v]) for u, v in zip(*np.where(B == 1)) ])
         else:
                 H = G.copy()

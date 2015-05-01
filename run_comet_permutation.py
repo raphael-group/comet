@@ -73,7 +73,7 @@ def run( args ):
     mutations = C.load_mutation_data(args.mutation_matrix, args.patient_file,
                                      args.gene_file, args.min_freq)
     m, n, genes, patients, geneToCases, patientToGenes = mutations
-    
+
     if args.verbose:
         print '* Mutation data: %s genes x %s patients' % (m, n)
 
