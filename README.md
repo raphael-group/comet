@@ -13,7 +13,7 @@ CoMEt requires the following Python modules. For each module, the latest version
 3. [NumPy](http://www.numpy.org/) (1.9.1).
 4. [Multi-Dendrix](http://github.com/raphael-group/multi-dendrix) [optional].
 
-CoMEt also requires a C compiler (e.g. [gcc](https://gcc.gnu.org/)) and a Fortran compiler (e.g. [gfortran](https://gcc.gnu.org/fortran/)) for compiling the Python extensions.
+CoMEt also requires a C compiler (e.g. [gcc](https://gcc.gnu.org/)), a Fortran compiler (e.g. [gfortran](https://gcc.gnu.org/fortran/)) and [pkg-config](http://linux.die.net/man/1/pkg-config) for compiling the Python extensions. CoMEt also requires the [glib2-2.0](https://developer.gnome.org/glib/) library.
 
 CoMEt requires [Bower](http://bower.io/) to create web output.
 
