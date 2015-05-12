@@ -29,11 +29,10 @@ if __name__ == "__main__":
 				   "-mf", "30"]
 	exhaustResults = RE.run(RE.get_parser().parse_args(exhaustArgs))
 
-        os.unlink("tmp-k3-exact-exhaustive.tsv")
+	os.unlink("tmp-k3-exact-exhaustive.tsv")
 
 	# Check the results
 	assert(json.dumps(exhaustResults) == json.dumps(trueExhaustive))
-	print json.dumps(mcmcResults)
 	assert(json.dumps(mcmcResults) == json.dumps(trueMCMC))
 
 	print "PASS"
