@@ -73,6 +73,6 @@ The tests are successful if the last line of the text printed to the terminal is
 
 ## Reference ##
 
-Mark D.M. Leiserson\*, Hsin-Ta Wu\*, Fabio Vandin, Benjamin J. Raphael. (2015) CoMEt: A Statistical Approach to Identify Combinations of Mutually Exclusive Alterations in Cancer. In *Proceedings of the 19th Annual Conference on Research in Computational Molecular Biology (RECOMB)* (to appear).
+[Mark D.M. Leiserson](http://maxleiserson.com)\*, [Hsin-Ta Wu](http://cs.brown.edu/~bournewu/)\*, [Fabio Vandin](http://www.imada.sdu.dk/~vandinfa/), [Benjamin J. Raphael](http://compbio.cs.brown.edu). CoMEt: A Statistical Approach to Identify Combinations of Mutually Exclusive Alterations in Cancer. In *Proceedings of the 19th Annual Conference on Research in Computational Molecular Biology (RECOMB)* 2015. [Extended abstract](http://link.springer.com/chapter/10.1007%2F978-3-319-16706-0_19#page-1) and [preprint](http://arxiv.org/abs/1503.08224).
 
 \* equal contribution
