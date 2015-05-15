@@ -5,6 +5,7 @@ import sys, os, json, re, time, comet as C, resource
 from math import exp
 
 # Try loading Multi-Dendrix
+sys.path.append('third-party/multi-dendrix')
 try:
     import multi_dendrix as multi_dendrix
     importMultidendrix = True
@@ -110,7 +111,9 @@ def comet(mutations, n, t, ks, numIters, stepLen, initialSoln,
                 M = collection[i]
                 W = Ws[i]
                 F = Cs[i]
-                P = exp(-W)
+                # extract the probability from the weight,
+                # which can also include the accelerator
+                P = pow(exp(-W), 1./amp) 
                 sets.append( dict(genes=M, W=W, num_tbls=F, prob=P) )
 
             totalWeight  = sum([ S["W"] for S in sets ])
@@ -135,6 +138,7 @@ def iter_num (prefix, numIters, ks, acc):
 def call_multidendrix(mutations, k, t):
     alpha, delta, lmbda = 1.0, 0, 1 # default of multidendrix
     geneSetsWithWeights = multi_dendrix.ILP( mutations, t, k, k, alpha, delta, lmbda)
+    print geneSetsWithWeights
     multiset = list()
     for geneSet, W in geneSetsWithWeights:
         for g in geneSet:
