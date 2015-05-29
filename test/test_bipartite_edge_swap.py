@@ -18,17 +18,13 @@ def check_degrees(G, H):
 
 def call_bipartite_edge_swap( G, xs, ys, Q ):
     # Compute the desired pieces of the graph structure
-    xs.sort(G.degree, reverse=True)
-    ys.sort(G.degree, reverse=True)
-    x_degrees = [ G.degree(x) for x in xs ]
-    y_degrees = [ G.degree(y) for y in ys ]
     A = np.array(bipartite.biadjacency_matrix(G, row_order=xs, column_order=ys, dtype=np.int32))
 
     # Set up and call the permute matrix function
-    max_tries = 1e75
-    seed      = random.randint(0, 2**32-1)
+    max_tries = 2**31-1
+    seed      = random.randint(0, 2**31-1)
     nswap     = len(G.edges()) * Q
-    B = bipartite_edge_swap(A, x_degrees, y_degrees, nswap, max_tries, seed)
+    B = bipartite_edge_swap(A, nswap, max_tries, seed=seed, verbose=True)
     H = nx.Graph()
     H.add_edges_from([ (xs[u], ys[v]) for u, v in zip(*np.where(B == 1)) ])
     return H
