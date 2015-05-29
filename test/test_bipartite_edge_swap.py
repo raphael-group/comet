@@ -69,5 +69,5 @@ if __name__ == "__main__":
         if not worked:
             raise ValueError("Degrees in permuted graph are different than original graph.")
 
-        print
+        print 'PASS'
 
