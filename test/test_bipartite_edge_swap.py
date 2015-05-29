@@ -1,7 +1,8 @@
 #!/usr/bin/python
 
 import networkx as nx, sys, os, time, random, numpy as np
-sys.path.append("../comet")
+sys.path.append("../comet/")
+sys.path.append("../comet/src/fortran")
 from permute_matrix import bipartite_edge_swap
 from networkx.algorithms import bipartite
 import permute as P
@@ -59,7 +60,6 @@ if __name__ == "__main__":
         worked = check_degrees(G, H)
         if not worked:
             raise ValueError("Degrees in permuted graph are different than original graph.")
-        sys.exit()
         
         # Run and time in Python
         start = time.time()
