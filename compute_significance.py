@@ -10,12 +10,11 @@ from math import factorial
 
 ###############################################################################
 # Delta selection functions
-# TODO: HSIN-TA: PLEASE ADD COMMENTS TO NEXT THREE FUNCTIONS BELOW
 
 def delta_plot(obj, outfile, boundEdges, deltaPoint, edgeno):
 	# TO-DO: HSIN-TA: WHY DOES THIS TAKE IN `obj` instead of `N`, `deltas`, etc.?
 	import matplotlib
-	matplotlib.use('Agg') # TO-DO: HSIN-TA: WHY?
+	matplotlib.use('Agg') # for users without DISPLAY environment variable
 	import matplotlib.pyplot as plt, seaborn as sns # TO-DO: HSIN-TA: DO WE NEED SEABORN?
 
 	N = obj["N"]
@@ -77,6 +76,10 @@ def choose_delta( deltas, realDist, passPoint, stdCutoff):
 		if realDist[i] > passPoint:
 			startI = i
 			break
+
+	if len(logX) <= 3: # less and equal than three edge weights => can't do regression method. Output smallest edge.
+		print "Less and equal than three edge weights in the marginal probability graph. Use the smallest edge weight as Delta."		
+		return deltas[0], realDist[0]
 
 	lastSlope = 0.
 	i = startI
