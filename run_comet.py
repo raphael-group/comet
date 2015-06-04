@@ -10,7 +10,7 @@ try:
     importMultidendrix = True
 except ImportError:
     importMultidendrix = False
-    sys.stderr.write("Warning: The Multi-Dendrix Python module could not"\
+    sys.stderr.write("Note: The Multi-Dendrix Python module could not"\
                      " be found. Using only random initializations...\n")
 
 def get_parser():

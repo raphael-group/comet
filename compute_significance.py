@@ -77,7 +77,7 @@ def choose_delta( deltas, realDist, passPoint, stdCutoff):
 			break
 
 	if len(logX) <= 3: # less and equal than three edge weights => can't do regression method. Output smallest edge.
-		print "Less and equal than three edge weights in the marginal probability graph. Use the smallest edge weight as Delta."		
+		print "At most three edge weights in the marginal probability graph. Using the smallest edge weight as Delta..."
 		return deltas[0], realDist[0]
 
 	lastSlope = 0.
