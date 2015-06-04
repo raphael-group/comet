@@ -11,15 +11,11 @@ from math import factorial
 ###############################################################################
 # Delta selection functions
 
-def delta_plot(obj, outfile, boundEdges, deltaPoint, edgeno):
-	# TO-DO: HSIN-TA: WHY DOES THIS TAKE IN `obj` instead of `N`, `deltas`, etc.?
+def delta_plot(N, deltas, realEdgeDist, outfile, boundEdges, deltaPoint, edgeno):
 	import matplotlib
 	matplotlib.use('Agg') # for users without DISPLAY environment variable
 	import matplotlib.pyplot as plt
 
-	N = obj["N"]
-	deltas = obj["deltas"]
-	realEdgeDist = obj["edge_dist"]
 	plt.rc('text', usetex=True)
 	c1, c2, c3, c4 = [(0.9677975592919913, 0.44127456009157356, 0.5358103155058701), (0.5920891529639701, 0.6418467016378244, 0.1935069134991043), (0.21044753832183283, 0.6773105080456748, 0.6433941168468681), (0.6423044349219739, 0.5497680051256467, 0.9582651433656727)]
 	colors = ['b', 'k', 'c', 'y']
@@ -46,6 +42,7 @@ def delta_plot(obj, outfile, boundEdges, deltaPoint, edgeno):
 	plt.savefig(outfile)
 
 def compute_edge_dist(G, deltas):
+	""" Create the distribution of edge weights """
 	weights = [ d['weight'] for u, v, d in G.edges(data=True) ]
 	weights.sort()
 	N = len(weights)
@@ -61,18 +58,18 @@ def compute_edge_dist(G, deltas):
 
 	return np.array(numEdges)
 
-def choose_delta( deltas, realDist, passPoint, stdCutoff):
-	"""Find the delta that slope change > 0 on log-log plot"""
+def choose_delta( deltas, realDist, expectedPoint, stdCutoff):
+	""" Find the delta through L-elbow method """
 	logY = np.log10(np.array(realDist))
 	logX = np.log10(np.array(deltas))
 
 	indices = -1
 	maxDiff = -1
 
-	startI = 0.
 	# reverse order from large edge weight, set start_i as index passing expected edges
+	startI = 0.
 	for i in range(len(logX)-1, 0, -1):
-		if realDist[i] > passPoint:
+		if realDist[i] > expectedPoint:
 			startI = i
 			break
 
@@ -81,41 +78,39 @@ def choose_delta( deltas, realDist, passPoint, stdCutoff):
 		return deltas[0], realDist[0]
 
 	lastSlope = 0.
-	i = startI
-	lastSlopeI = 0. # for storing the index of elbow point
+	i = startI # i: change point
+	lastSlopeI = None # for storing the index of elbow point
 	while True:
-		# define a line based on small standard mean error
-                iS = 0
-		for j in range(2, len(logX)):
+		iS = 0
+        # define a line with standard mean error <= stdCutoff
+		for j in range(2, len(logX)): 
 			iS = i-j+1
-			iE = i+1
-
+			iE = i
 			# linear regression
-			regression = np.polyfit(logX[iS:iE] , logY[iS:iE], 1)
+			regression = np.polyfit(logX[iS:iE+1] , logY[iS:iE+1], 1)
 			# y=ax+b a:point_on_x, b: point_on_y
 			pointOnX = regression[1] / (0 - regression[0])
 			pointOnY = regression[1]
-
 			# form line 
-			line = regression[1] + regression[0] * logX[iS:iE]
-			lineX = (logY[iS:iE]-regression[1])/(regression[0])
-
+			line = regression[1] + regression[0] * logX[iS:iE+1]
+			lineX = (logY[iS:iE+1]-regression[1])/(regression[0])
 			# calculate standard mean error
-			errX=math.sqrt(sum((lineX-logX[iS:iE])**2)/(iE-iS))
-			errY=math.sqrt(sum((line-logY[iS:iE])**2)/(iE-iS))
+			errX=math.sqrt(sum((lineX-logX[iS:iE+1])**2)/(iE+1-iS))
+			errY=math.sqrt(sum((line-logY[iS:iE+1])**2)/(iE+1-iS))
 
-			if (errX + errY)/2 > stdCutoff or iS == 0:
+			# if iS goest to the smallest edge weight or err of line > stdCutoff
+			if (errX + errY)/2 > stdCutoff or iS == 0: 
 				break
 
-		if iS == 0 and lastSlope == 0.: # no elbow point
+		if iS == 0 and lastSlopeI == None: # no elbow point
 			print "No elbow point found! Try to lower the standard error cutoff with -rmse < ", stdCutoff
 			exit(1)
 
-		# first changing point
-		if lastSlope == 0.:
+		
+		if lastSlopeI == None: # form first line. Assign slope and index for comparing with another line in the next round
 			lastSlope = (logY[i] - logY[iS + 1]) / (logX[i] - logX[iS + 1])
 			lastSlopeI = iS + 1
-		else:
+		else: 
 			# slope change > 0
 			if lastSlope - ((logY[i] - logY[iS + 1]) / (logX[i] - logX[iS + 1]) )> 0:
 				break
@@ -160,26 +155,26 @@ def create_table_row(arr, eventNames):
 	row["allGenes"] = dict((g, True) for g in allGenes)
 	return row
 
-# Hsin-Ta: Please comment nCr and construct_mp_graph. What's pass_point, max_rweight,
-# etc?
 def nCr(n,r):
+	""" n choose r """
 	return factorial(n) / factorial(r) / factorial(n-r)
 
 def construct_mp_graph(filename, eventNames, minSamplingFreq, maxPWeight):
+	""" Construct marginal prob. graph from collections with weight larger than permuted data (maxPWeight) """
+	""" Using genesets with the maximum weight to generate expected number of nodes in the graph for delta selection """
 	tables = []
 	geneSets, freqs = [], []
 	N = 0
-	count = 0
+	
 	maxRWeight = 0
-	passPoint = 0
+	expectedPoint = 0
 	with open(filename) as f:
 		for l in f:
 			if l.startswith("#") or float(l.split("\t")[1]) < maxPWeight: continue
 			if float(l.split("\t")[1]) > maxRWeight:
 				maxRWeight = float(l.split("\t")[1])
-				passPoint = sum([nCr(len(G.split(", ")),2) for G in l.rstrip().split("\t")[3::3] ])
+				expectedPoint = sum([nCr(len(G.split(", ")),2) for G in l.rstrip().split("\t")[3::3] ])
 
-			count+=1
 			arr = l.rstrip().split("\t")
 			freq = float(arr[0])
 
@@ -205,7 +200,7 @@ def construct_mp_graph(filename, eventNames, minSamplingFreq, maxPWeight):
 	MPG = nx.Graph()
 	MPG.add_edges_from(mpgEdges)
 
-	return MPG, tables, passPoint
+	return MPG, tables, expectedPoint
 
 
 def extract_relevant_edges(edges, minEdgeWeight):
@@ -342,9 +337,13 @@ def run( args ):
 	if args.verbose: print "* Constructing marginal probability graph..."
 
 	res = construct_mp_graph( inputFile, eventNames,  msf, maxPermutedWeight )
-	MPG, tables, passPoint = res
+	MPG, tables, expectedPoint = res
 	edges = MPG.edges(data=True)
 
+	if len(edges) == 0: # no significant results
+		print "No significant collection. "
+		exit(1)
+		
 	if args.verbose: print "\t- Edges:", len(edges)
 
 	# Choose delta (the minimum edge weight in the marginal probability 
@@ -354,47 +353,25 @@ def run( args ):
 
 	deltas = sorted(set( d['weight'] for u, v, d in MPG.edges(data=True)))
 	realEdgeDist = compute_edge_dist(MPG, deltas)
-	deltaPoint, edgeno = choose_delta(deltas, realEdgeDist, passPoint, sec)
+	deltaPoint, edgeno = choose_delta(deltas, realEdgeDist, expectedPoint, sec)
 
 	if args.verbose: print "\t- Delta: ", deltaPoint
 
 	###########################################################################
 	# Create the web output
-
-	# Dictionary of web output
-	obj = {
-			"N": N,
-			"mm": ['max-derivative'],
-			"deltas": deltas,
-			"edge_dist": realEdgeDist,
-			"collections": {
-			   	"max-derivative": {
-			   		"more_extreme": 0,
-			   		"pval": [0],
-				   	"components": list(),
-				   	"delta": deltaPoint
-				}
-			}
-	}
-
-	# TO-DO: HSIN-TA: Please comment, I have no idea what this does!
-	collections = obj["collections"]
-	deltas = [ dict(delta=collections[m]["delta"], pval=collections[m]["pval"], method=m,
-			   cdelta=min(obj["deltas"], key=lambda x:abs(x-collections[m]["delta"])))
-			   for m in obj["mm"] ]
 	plot=None
 
 	# Write the delta plot to file as an SVG, then load
 	# it so we can embed it in the web page
 	if args.verbose: print "* Plotting delta curve..."
 	tmp = tempfile.mktemp(".svg", dir=".", prefix=".tmp")
-	delta_plot(obj, tmp, passPoint, deltaPoint, edgeno)
+	delta_plot(N, deltas, realEdgeDist, tmp, expectedPoint, deltaPoint, edgeno)
 
 	# Read in the graph, skipping the first four lines that are
 	# extraneous header information that will only confuse a webpage
 	with open(tmp) as f: plot = "".join(f.readlines()[4:])
 	os.unlink(tmp)
-	stats = dict(deltas=deltas, plot=plot, N=N)
+	stats = dict(deltas=[dict(delta=deltaPoint, pval=0.)], plot=plot, N=N)
 
 	# Combine everything to create the D3 data
 	if args.verbose: print "* Creating GD3 data..."
