@@ -15,14 +15,13 @@ def delta_plot(obj, outfile, boundEdges, deltaPoint, edgeno):
 	# TO-DO: HSIN-TA: WHY DOES THIS TAKE IN `obj` instead of `N`, `deltas`, etc.?
 	import matplotlib
 	matplotlib.use('Agg') # for users without DISPLAY environment variable
-	import matplotlib.pyplot as plt, seaborn as sns # TO-DO: HSIN-TA: DO WE NEED SEABORN?
+	import matplotlib.pyplot as plt
 
 	N = obj["N"]
 	deltas = obj["deltas"]
 	realEdgeDist = obj["edge_dist"]
 	plt.rc('text', usetex=True)
-	sns.set(style="darkgrid")
-	c1, c2, c3, c4 = sns.color_palette("husl", 4)[:4]
+	c1, c2, c3, c4 = [(0.9677975592919913, 0.44127456009157356, 0.5358103155058701), (0.5920891529639701, 0.6418467016378244, 0.1935069134991043), (0.21044753832183283, 0.6773105080456748, 0.6433941168468681), (0.6423044349219739, 0.5497680051256467, 0.9582651433656727)]
 	colors = ['b', 'k', 'c', 'y']
 	for i in range(2):
 		ax = plt.subplot(1, 2, i+1)
