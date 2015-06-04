@@ -219,16 +219,6 @@ void int_arr_to_string(int *array, int len, char *dest, char *delimiter) {
     free(tmp);
 }
 
-void key_destroyed(gpointer gstr_key) {
-    g_free(gstr_key);
-}
-
-void value_destroyed(gpointer data_value) {
-    memo_data_t *data = (memo_data_t *) data_value; 
-    free(data->table);
-    free(data_value);
-}
-
 // Copy an array of doubles
 void copyArr(double *A, double *B, int n){
   int i;
