@@ -4,7 +4,6 @@
 #include <Python.h>
 #include <math.h>
 #include <stdlib.h>
-#include <glib.h>
 #include <string.h>
 #include <stdio.h>
 
@@ -90,9 +89,6 @@ int sum_int_array(int *arr, int len);
 void freeze_int_array(int i, int len, int **frozenarrays, int *arr); 
 current_soln_values_t *current_arrays_allocate(int k); 
 void current_arrays_free(current_soln_values_t *curr_soln_vals); 
-
-void key_destroyed(gpointer gstr_key); 
-void value_destroyed(gpointer data_value); 
 
 frozen_arrays_t *frozen_allocate(int numFrozen); 
 void frozen_free(int numFrozen, frozen_arrays_t *frozen); 
