@@ -306,14 +306,15 @@ def run( args ):
     
     # Output Comet results to TSV
     collections = sorted(results.keys(), key=lambda S: results[S]["total_weight"], reverse=True)    		    
+    weight_func_mapping = {1:'E', 2:'B', 3:'P'}
     header = "#Freq\tTotal Weight\tTarget Weight\t"
-    header += "\t".join(["Gene set %s (k=%s)\tProb %s\tWeight function %s" % (i, ks[i-1], i, i) for i in range(1, len(ks)+1)])
+    header += "\t".join(["Gene set %s (k=%s)\tPhi %s\tWeight function %s" % (i, ks[i-1], i, i) for i in range(1, len(ks)+1)])
     tbl = [header]
     for S in collections:
         data = results[S]
         row = [ data["freq"], data["total_weight"], format(data["target_weight"], 'g') ]
         for d in sorted(data["sets"], key=lambda d: d["W"]):
-            row += [", ".join(sorted(d["genes"])), d["prob"], d["num_tbls"] ]
+            row += [", ".join(sorted(d["genes"])), d["prob"], weight_func_mapping[d["num_tbls"]] ]
         tbl.append("\t".join(map(str, row)))
 
     outputFile = "%s.tsv" % iter_num(args.output_prefix + '.sum', N*(runNum), ks, args.accelerator)
