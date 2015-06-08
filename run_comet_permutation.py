@@ -100,7 +100,7 @@ def run( args ):
 
     for i in range(args.num_permutations):
         # Print simple progress bar
-        sys.stdout.write("* Running CoMEt on permuted matrices... {}/{}\r".format(i+1, n))
+        sys.stdout.write("* Running CoMEt on permuted matrices... {}/{}\r".format(i+1, args.num_permutations))
         sys.stdout.flush()
 
         # Create a permuted dataset and save it a temporary file
@@ -108,7 +108,7 @@ def run( args ):
         _, _, _, _, geneToCases, patientToGenes = mutations
         adj_list = [ p + "\t" + "\t".join( sorted(patientToGenes[p]) ) for p in patients ]
         
-	permutation_file = "{}/permuted-matrix-{}.m2".format(directory, i+1)
+        permutation_file = "{}/permuted-matrix-{}.m2".format(directory, i+1)
         with open(permutation_file, 'w') as outfile: outfile.write('\n'.join(adj_list))
         
         # Add the new arguments
