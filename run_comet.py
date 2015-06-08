@@ -5,12 +5,13 @@ import sys, os, json, re, time, comet as C, resource
 from math import exp
 
 # Try loading Multi-Dendrix
+sys.path.append('third-party/multi-dendrix')
 try:
     import multi_dendrix as multi_dendrix
     importMultidendrix = True
 except ImportError:
     importMultidendrix = False
-    sys.stderr.write("Warning: The Multi-Dendrix Python module could not"\
+    sys.stderr.write("Note: The Multi-Dendrix Python module could not"\
                      " be found. Using only random initializations...\n")
 
 def get_parser():
@@ -110,7 +111,9 @@ def comet(mutations, n, t, ks, numIters, stepLen, initialSoln,
                 M = collection[i]
                 W = Ws[i]
                 F = Cs[i]
-                P = exp(-W)
+                # extract the probability from the weight,
+                # which can also include the accelerator
+                P = pow(exp(-W), 1./amp) 
                 sets.append( dict(genes=M, W=W, num_tbls=F, prob=P) )
 
             totalWeight  = sum([ S["W"] for S in sets ])
@@ -135,6 +138,7 @@ def iter_num (prefix, numIters, ks, acc):
 def call_multidendrix(mutations, k, t):
     alpha, delta, lmbda = 1.0, 0, 1 # default of multidendrix
     geneSetsWithWeights = multi_dendrix.ILP( mutations, t, k, k, alpha, delta, lmbda)
+    print geneSetsWithWeights
     multiset = list()
     for geneSet, W in geneSetsWithWeights:
         for g in geneSet:
@@ -302,14 +306,15 @@ def run( args ):
     
     # Output Comet results to TSV
     collections = sorted(results.keys(), key=lambda S: results[S]["total_weight"], reverse=True)    		    
+    weight_func_mapping = {1:'E', 2:'B', 3:'P'}
     header = "#Freq\tTotal Weight\tTarget Weight\t"
-    header += "\t".join(["Gene set %s (k=%s)\tProb %s\tWeight function %s" % (i, ks[i-1], i, i) for i in range(1, len(ks)+1)])
+    header += "\t".join(["Gene set %s (k=%s)\tPhi %s\tWeight function %s" % (i, ks[i-1], i, i) for i in range(1, len(ks)+1)])
     tbl = [header]
     for S in collections:
         data = results[S]
         row = [ data["freq"], data["total_weight"], format(data["target_weight"], 'g') ]
         for d in sorted(data["sets"], key=lambda d: d["W"]):
-            row += [", ".join(sorted(d["genes"])), d["prob"], d["num_tbls"] ]
+            row += [", ".join(sorted(d["genes"])), d["prob"], weight_func_mapping[d["num_tbls"]] ]
         tbl.append("\t".join(map(str, row)))
 
     outputFile = "%s.tsv" % iter_num(args.output_prefix + '.sum', N*(runNum), ks, args.accelerator)

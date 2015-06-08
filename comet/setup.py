@@ -17,10 +17,7 @@ def subprocessOutput(args):
     try: return out
     except: print "Error: " + err
 
-glib_flgs = subprocessOutput([ 'pkg-config', '--cflags', 'glib-2.0' ]).split()
-glib_libs = subprocessOutput([ 'pkg-config', '--libs', 'glib-2.0' ]).split()
-compile_args = glib_flgs
-compile_args += ['-g', '-O0']
+compile_args = ['-g', '-O0']
 
 srcs = ['/src/c/utils/cephes/polevl.c','/src/c/utils/cephes/gamma.c',
         '/src/c/utils/cephes/incbet.c', '/src/c/utils/utilities.c',
