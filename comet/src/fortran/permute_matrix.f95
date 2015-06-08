@@ -161,7 +161,7 @@ subroutine bipartite_edge_swap(B, A, nswap, max_tries, seed, verbose, m, n)
     u  = int(r(3) * x_degrees(x1)) + 1
     v  = int(r(4) * y_degrees(y1)) + 1
 
-    y2 = kth_one(B, x1, 0, u, m, n)
+    y2 = kth_one(B, x1, 2, u, m, n)
     x2 = kth_one(B, y1, 1, v, m, n)
 
     ! If x1 is not already connected to y1 and x2 is not already
