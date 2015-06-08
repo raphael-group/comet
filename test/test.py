@@ -19,8 +19,10 @@ if __name__ == "__main__":
 				 "-g", "../example_datasets/gbm/GBM.glst", "-N", "10000",
 				 "--seed", str(seed), "-mf", "30", "-ks", "3", "3"]
 	mcmcResults = RC.run(RC.get_parser().parse_args(mcmcArgs))
-	os.unlink("tmp-mcmc.para.k33.10K.1.json")
-	os.unlink("tmp-mcmc.sum.k33.10K.1.tsv")
+	if os.path.exists("tmp-mcmc.para.k33.10K.1.json"):
+		os.unlink("tmp-mcmc.para.k33.10K.1.json")
+	if os.path.exists("tmp-mcmc-sum.k33.10K.1.tsv"):
+		os.unlink("tmp-mcmc.sum.k33.10K.1.tsv")
 		
 	# Run exhaustive
 	exhaustArgs = ["-m", "../example_datasets/gbm/GBM.m2", "-o", "tmp",
@@ -29,7 +31,8 @@ if __name__ == "__main__":
 	exhaustResults = RE.run(RE.get_parser().parse_args(exhaustArgs))
 	exhaustResults = [ (genes, round(phi, 5), round(score, 5)) for genes, phi, score in exhaustResults]
 
-	os.unlink("tmp-k3-exact-exhaustive.tsv")
+	if os.path.exists("tmp-k3-exact-exhaustive.tsv"):
+		os.unlink("tmp-k3-exact-exhaustive.tsv")
 
 	# Check the results
 	assert(json.dumps(exhaustResults) == json.dumps(trueExhaustive))
