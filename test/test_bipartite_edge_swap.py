@@ -1,7 +1,8 @@
 #!/usr/bin/python
 
 import networkx as nx, sys, os, time, random, numpy as np
-sys.path.append("../comet")
+sys.path.append("../comet/")
+sys.path.append("../comet/src/fortran")
 from permute_matrix import bipartite_edge_swap
 from networkx.algorithms import bipartite
 import permute as P
@@ -18,17 +19,13 @@ def check_degrees(G, H):
 
 def call_bipartite_edge_swap( G, xs, ys, Q ):
     # Compute the desired pieces of the graph structure
-    xs.sort(G.degree, reverse=True)
-    ys.sort(G.degree, reverse=True)
-    x_degrees = [ G.degree(x) for x in xs ]
-    y_degrees = [ G.degree(y) for y in ys ]
     A = np.array(bipartite.biadjacency_matrix(G, row_order=xs, column_order=ys, dtype=np.int32))
 
     # Set up and call the permute matrix function
-    max_tries = 1e75
-    seed      = random.randint(0, 2**32-1)
+    max_tries = 2**31-1
+    seed      = random.randint(0, 2**31-1)
     nswap     = len(G.edges()) * Q
-    B = bipartite_edge_swap(A, x_degrees, y_degrees, nswap, max_tries, seed)
+    B = bipartite_edge_swap(A, nswap, max_tries, seed=seed, verbose=True)
     H = nx.Graph()
     H.add_edges_from([ (xs[u], ys[v]) for u, v in zip(*np.where(B == 1)) ])
     return H
@@ -63,15 +60,14 @@ if __name__ == "__main__":
         worked = check_degrees(G, H)
         if not worked:
             raise ValueError("Degrees in permuted graph are different than original graph.")
-        sys.exit()
         
         # Run and time in Python
         start = time.time()
         H = P.bipartite_double_edge_swap( G, xs, ys, nswap=numEdges * Q)
         print "\tPython:", time.time() - start, 'secs'
-        check_degrees(G, H)
+        worked = check_degrees(G, H)
         if not worked:
             raise ValueError("Degrees in permuted graph are different than original graph.")
 
-        print
+        print 'PASS'
 

@@ -3,8 +3,8 @@
 # Import globally required modules
 import sys, random, numpy as np
 try:
-        import networkx as nx
-        from networkx.algorithms.bipartite import biadjacency_matrix
+		import networkx as nx
+		from networkx.algorithms.bipartite import biadjacency_matrix
 except ImportError:
 	print 'Error!'
 	print '\tCould not import NetworkX (http://networkx.github.com).'
@@ -14,11 +14,11 @@ except ImportError:
 # Try to import the Fortran double edge swap, otherwise
 # import the Python version
 try: 
-        from permute_matrix import bipartite_edge_swap
-        fortranBindings = False
+		from permute_matrix import bipartite_edge_swap
+		fortranBindings = True
 except ImportError:
-        fortranBindings = False
-        sys.stderr.write("[Warning] Could not import Fortran bipartite_edge_swap bindings.\n")
+		fortranBindings = False
+		sys.stderr.write("[Warning] Could not import Fortran bipartite_edge_swap bindings.\n")
 
 def bipartite_double_edge_swap(G, genes, patients, nswap=1, max_tries=1e75):
 	"""A modified version of the double_edge_swap function in NetworkX to preserve the bipartite structure of the graph.
@@ -92,24 +92,17 @@ def graph_to_mutation_data(H, genes, patients):
 	return m, n, genes, patients, geneToCases, patientToGenes
 
 def permute_mutation_data(G, genes, patients, seed, Q=100):
-        print
-        if fortranBindings:
-                # Compute the desired pieces of the graph structure
-                xs = sorted(genes, key=G.degree, reverse=True)
-                ys = sorted(patients, key=G.degree, reverse=True)
-                x_degrees = [ G.degree(x) for x in xs ]
-                y_degrees = [ G.degree(y) for y in ys ]
-                A = np.array(biadjacency_matrix(G, row_order=xs,
-                                                column_order=ys,
-                                                dtype=np.int32))
+	if fortranBindings:
+		# Compute the desired pieces of the graph structure
+		A = np.array(biadjacency_matrix(G, row_order=genes, column_order=patients, dtype=np.int32), dtype=np.int32)
 
-                # Set up and call the permute matrix function
-                B = bipartite_edge_swap(A, x_degrees, y_degrees, len(G.edges()) * Q, 1e9, seed=seed)
-                H = nx.Graph()
-                H.add_nodes_from( genes + patients ) # some patients/genes may have zero mutations
-                H.add_edges_from([ (xs[u], ys[v]) for u, v in zip(*np.where(B == 1)) ])
-        else:
-                H = G.copy()
-                random.seed(seed)
-                bipartite_double_edge_swap(H, genes, patients, nswap=Q * len( G.edges() ))
+		# Set up and call the permute matrix function
+		B = bipartite_edge_swap(A, nswap=len(G.edges()) * Q, max_tries=2**31-1, seed=seed, verbose=False)
+		H = nx.Graph()
+		H.add_nodes_from( genes + patients ) # some patients/genes may have zero mutations
+		H.add_edges_from([ (genes[u], patients[v]) for u, v in zip(*np.where(B == 1)) ])
+	else:
+		H = G.copy()
+		random.seed(seed)
+		bipartite_double_edge_swap(H, genes, patients, nswap=Q * len( G.edges() ))
 	return graph_to_mutation_data(H, genes, patients)
