@@ -4,6 +4,8 @@ CoMEt is a stochastic algorithm for identifying collections of mutually exclusiv
 
 CoMEt identifies a collection **M** of *t* alteration sets, each of size *k*, from a binary alteration matrix. CoMEt uses a Markov chain Monte Carlo (MCMC) algorithm to sample collections in proportion to their weight &phi;(**M**). The output of CoMEt is a list of collections, each with their sampling frequency, weight, and the weight &phi;(M) of each alteration set M &isin; **M**.
 
+We also refer you to the [cometExactTest R package](http://cran.r-project.org/web/packages/cometExactTest/) hosted on [CRAN](http://cran.r-project.org/).
+
 ## Requirements ##
 
 CoMEt requires the following Python modules. For each module, the latest version tested with CoMEt is given in parantheses:
