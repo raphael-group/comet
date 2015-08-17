@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 # Import globally required modules
-import sys, random, numpy as np
+import sys, random, numpy as np, scipy as sp, scipy.sparse
 try:
 		import networkx as nx
 		from networkx.algorithms.bipartite import biadjacency_matrix
@@ -13,7 +13,7 @@ except ImportError:
 
 # Try to import the Fortran double edge swap, otherwise
 # import the Python version
-try: 
+try:
 		from permute_matrix import bipartite_edge_swap
 		fortranBindings = True
 except ImportError:
@@ -22,7 +22,7 @@ except ImportError:
 
 def bipartite_double_edge_swap(G, genes, patients, nswap=1, max_tries=1e75):
 	"""A modified version of the double_edge_swap function in NetworkX to preserve the bipartite structure of the graph.
-	
+
 	For more details on this function, please see the `original NetworkX function <http://goo.gl/wWxBD>`_ that I shamelessly used to make this one.
 	The only major change here is that I ensure that u,v and x,y are of the same type (i.e. genes or patients).
 	"""
@@ -50,16 +50,16 @@ def bipartite_double_edge_swap(G, genes, patients, nswap=1, max_tries=1e75):
 
 		patient1 = u if u in patients else x
 		gene1    = x if x in genes else u
-		
+
 		# choose target uniformly from neighbors
 		patient2=random.choice( list(G[gene1]) )
 		gene2=random.choice( list(G[patient1]) )
-	
+
 		# don't create parallel edges
-		if (gene1 not in G[patient1]) and (gene2 not in G[patient2]): 
+		if (gene1 not in G[patient1]) and (gene2 not in G[patient2]):
 			G.add_edge(gene1,patient1)
 			G.add_edge(gene2,patient2)
-			
+
 			G.remove_edge(gene1,patient2)
 			G.remove_edge(patient1, gene2)
 			swapcount+=1
@@ -86,7 +86,7 @@ def graph_to_mutation_data(H, genes, patients):
 		mutations = H[patient]
 		patientToGenes[patient] = set( mutations )
 		for g in mutations: geneToCases[g].add( patient )
-				
+
 	genes, patients = geneToCases.keys(), patientToGenes.keys()
 	m, n = len(genes), len(patients)
 	return m, n, genes, patients, geneToCases, patientToGenes
@@ -94,7 +94,10 @@ def graph_to_mutation_data(H, genes, patients):
 def permute_mutation_data(G, genes, patients, seed, Q=100):
 	if fortranBindings:
 		# Compute the desired pieces of the graph structure
-		A = np.array(biadjacency_matrix(G, row_order=genes, column_order=patients, dtype=np.int32), dtype=np.int32)
+		A = biadjacency_matrix(G, row_order=genes, column_order=patients, dtype=np.int32)
+		if sp.sparse.issparse(A):
+		    A = A.todense()
+		A = np.asarray(A, dtype=np.int32)
 
 		# Set up and call the permute matrix function
 		B = bipartite_edge_swap(A, nswap=len(G.edges()) * Q, max_tries=2**31-1, seed=seed, verbose=False)
