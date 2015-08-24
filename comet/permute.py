@@ -106,5 +106,6 @@ def permute_mutation_data(G, genes, patients, seed, Q=100):
 		H.add_edges_from([ (genes[u], patients[v]) for u, v in zip(*np.where(B == 1)) ])
 	else:
 		H = G.copy()
+		random.seed(seed)
 		bipartite_double_edge_swap(H, genes, patients, nswap=Q * len( G.edges() ))
 	return graph_to_mutation_data(H, genes, patients)
