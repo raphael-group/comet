@@ -12,7 +12,7 @@ CoMEt requires the following Python modules. For each module, the latest version
 
 1. [NetworkX](https://networkx.github.io/) (1.9.1)
 2. [SciPy](http://www.scipy.org/) (0.14.1)
-3. [NumPy](http://www.numpy.org/) (1.9.1).
+3. [NumPy](http://www.numpy.org/) (1.10.1).
 4. [matplotlib](http://matplotlib.org/) (1.4.2).
 5. [Multi-Dendrix](http://github.com/raphael-group/multi-dendrix) [optional].
 
