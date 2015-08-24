@@ -69,10 +69,6 @@ def runComet(cometArgs):
     return RC.run( RC.get_parser().parse_args(cometArgs) )
 
 def run( args ):
-    # Seed Python PRNG and generate seeds for each permutation
-    random.seed(args.seed)
-    seeds = random.sample(xrange(2**31-1), args.num_permutations)
-
     # Load mutation data using Multi-Dendrix and output as a temporary file
     mutations = C.load_mutation_data(args.mutation_matrix, args.patient_file,
                                      args.gene_file, args.min_freq)
@@ -102,13 +98,17 @@ def run( args ):
     else:
         directory = tempfile.mkdtemp(dir=".", prefix=".tmp")
 
-    for i in range(args.num_permutations):
+    # Generate random seeds for each permutation
+    random.seed(args.seed)
+    seeds = [ random.randint(0, 2**31-1) for _ in range(args.num_permutations) ]
+
+    for i, seed in enumerate(seeds):
         # Print simple progress bar
         sys.stdout.write("* Running CoMEt on permuted matrices... {}/{}\r".format(i+1, args.num_permutations))
         sys.stdout.flush()
 
         # Create a permuted dataset and save it a temporary file
-        mutations = C.permute_mutation_data(G, genes, patients, seeds[i], args.Q)
+        mutations = C.permute_mutation_data(G, genes, patients, seed, args.Q)
         _, _, _, _, geneToCases, patientToGenes = mutations
         adj_list = [ p + "\t" + "\t".join( sorted(patientToGenes[p]) ) for p in patients ]
 
