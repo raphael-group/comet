@@ -107,7 +107,7 @@ def run( args ):
         sys.stdout.flush()
 
         # Create a permuted dataset and save it a temporary file
-        seed = random.randint(0, 2**32-2) # generate a new random seed
+        seed = random.randint(0, 2**31-1) # generate a new random seed
         mutations = C.permute_mutation_data(G, genes, patients, seed, args.Q)
         _, _, _, _, geneToCases, patientToGenes = mutations
         adj_list = [ p + "\t" + "\t".join( sorted(patientToGenes[p]) ) for p in patients ]
