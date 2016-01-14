@@ -55,8 +55,7 @@ def run( args ):
     with open( tempDirectory + 'temp.snv', "w" ) as out:
         output = []
         for p in MM:
-            if subtypeDict[p[0]] != None:
-                p.extend( [ s for s in subtypes.difference( set([subtypeDict[p[0]]]) ) ])
+            p.extend( list( subtypes.difference( set([subtypeDict[p[0]]]) ) ) )
             output.append( '\t'.join( p ) )
         out.write( '\n'.join( output ) )
 
