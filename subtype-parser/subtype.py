@@ -56,12 +56,12 @@ def run( args ):
         output = []
         for p in MM:
             if subtypeDict[p[0]] != None:
-                p.append( subtypeDict[p[0]] )
+                p.extend( [ s for s in subtypes.difference( set([subtypeDict[p[0]]]) ) ])
             output.append( '\t'.join( p ) )
         out.write( '\n'.join( output ) )
 
     # Generating output for combined subtype and core event list
-    with open(tempDirectory + 'temp-subtypes.txt', "w") as out:
+    with open( tempDirectory + 'temp-subtypes.txt', "w" ) as out:
         out.write( '\n'.join( subtypes | coreEvents ) )
 
 if __name__ == "__main__": run( get_parser().parse_args(sys.argv[1:]) )
