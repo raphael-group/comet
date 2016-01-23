@@ -51,7 +51,10 @@ def get_parser():
                         help='Initial solution to use.')
     parser.add_argument('-acc', '--accelerator', default=1, type=int,
                         help='accelerating factor for target weight')
-    parser.add_argument('-sub', '--subtype', default=None, help='File with a list of subtype for performing subtype-comet.')
+    parser.add_argument('-sub', '--subtype', default=None,
+                        help='File with a list of subtype for performing subtype-comet.')
+    parser.add_argument('-ce', '--core_events', default=None,
+                        help='File with a list of core events for performing subtype-comet.')
     parser.add_argument('-r', '--num_initial', default=1, type=int,
                         help='Number of different initial starts to use with MCMC.')
     parser.add_argument('--exact_cut', default=0.001, type=float,
@@ -233,6 +236,7 @@ def run( args ):
     geneFile = args.gene_file
     patientFile = args.patient_file
     minFreq = args.min_freq
+    subtypeFile = args.subtype
     rc    = args.num_initial
     t     = len(args.gene_set_sizes) # number of pathways
     ks    = args.gene_set_sizes      # size of each pathway
@@ -246,14 +250,14 @@ def run( args ):
     tc   = 1
 
 	# Load the mutation data
-    mutations = C.load_mutation_data(mutationMatrix, patientFile, geneFile, minFreq)
-    m, n, genes, patients, geneToCases, patientToGenes = mutations
+    mutations = C.load_mutation_data(mutationMatrix, patientFile, geneFile, minFreq, subtypeFile)
+    m, n, genes, patients, geneToCases, patientToGenes, subtypes = mutations
 
-    if args.subtype:
-        with open(args.subtype) as f:
-            subSet = [ l.rstrip() for l in f ]
+    if args.core_events:
+        with open(args.core_events) as f:
+            subSet = list( subtypes.union( set( [ l.rstrip() for l in f ] ) ) )
     else:
-        subSet = list()
+        subSet = list( subtypes )
 
     if args.verbose:
         print 'Mutation data: %s genes x %s patients' % (m, n)

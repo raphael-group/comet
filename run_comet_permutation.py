@@ -50,7 +50,10 @@ def get_parser():
                         help='Initial solution to use.')
     parser.add_argument('-acc', '--accelerator', default=1, type=int,
                         help='accelerating factor for target weight')
-    parser.add_argument('-sub', '--subtype', default=None, help='File with a list of subtype for performing subtype-comet.')
+    parser.add_argument('-sub', '--subtype', default=None,
+                        help='File with a list of subtype for performing subtype-comet.')
+    parser.add_argument('-ce', '--core_events', default=None,
+                        help='File with a list of core events for performing subtype-comet.')
     parser.add_argument('-r', '--num_initial', default=1, type=int,
                         help='Number of different initial starts to use with MCMC.')
     parser.add_argument('--exact_cut', default=0.001, type=float,
@@ -71,8 +74,8 @@ def runComet(cometArgs):
 def run( args ):
     # Load mutation data using Multi-Dendrix and output as a temporary file
     mutations = C.load_mutation_data(args.mutation_matrix, args.patient_file,
-                                     args.gene_file, args.min_freq)
-    m, n, genes, patients, geneToCases, patientToGenes = mutations
+                                     args.gene_file, args.min_freq, args.subtype)
+    m, n, genes, patients, geneToCases, patientToGenes, subtypes = mutations
 
     if args.verbose:
         print '* Mutation data: %s genes x %s patients' % (m, n)
