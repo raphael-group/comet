@@ -14,7 +14,7 @@ PyObject *py_set_random_seed(PyObject *self, PyObject *args){
 
     // Intialize random number generator with the given seed
     srand((unsigned) seed);
-  
+
     return Py_BuildValue(""); // returns NULL
 }
 
@@ -56,19 +56,19 @@ PyObject *py_exhaustive(PyObject *self, PyObject *args){
     double pvalthresh;
 
     /* Parse Python arguments */
-    if (! PyArg_ParseTuple( args, "iiiO!O!d", &k, &numGenes, &numPatients, &PyList_Type, 
+    if (! PyArg_ParseTuple( args, "iiiO!O!d", &k, &numGenes, &numPatients, &PyList_Type,
                             &patients2mutatedGenes, &PyList_Type,
                             &gene2numMutations, &pvalthresh)) {
         return NULL;
     }
-    
+
     mut_data = mut_data_allocate(numPatients, numGenes);
     init_mutation_data (mut_data, numPatients, numGenes,
                         patients2mutatedGenes, gene2numMutations);
 
     numSets = choose(numGenes, k);
-     
-    frozen = comet_exhaustive(mut_data, k, &numSets, pvalthresh); 
+
+    frozen = comet_exhaustive(mut_data, k, &numSets, pvalthresh);
     mut_data_free(mut_data);
 
     solns = PyList_New(numSets);
@@ -94,29 +94,29 @@ PyObject *py_comet_phi(PyObject *self, PyObject *args){
     PyObject *py_genes, *patients2mutatedGenes, *gene2numMutations, *result;
     mutation_data_t *A;
     double exactPvalthresh, binomPvalthresh, score;
-    
+
     /* Parse Python arguments */
-    if (! PyArg_ParseTuple( args, "iiiO!O!ddiiO!", &k, &numGenes, &numPatients, 
-                            &PyList_Type, &patients2mutatedGenes, &PyList_Type, &gene2numMutations, 
+    if (! PyArg_ParseTuple( args, "iiiO!O!ddiiO!", &k, &numGenes, &numPatients,
+                            &PyList_Type, &patients2mutatedGenes, &PyList_Type, &gene2numMutations,
                             &exactPvalthresh, &binomPvalthresh, &coCutoff, &numPermutations,
                             &PyList_Type, &py_genes)) {
         return NULL;
     }
-    int num_entries = 1 << k;  
-    int tbl[num_entries];  
-    int **co_elem = malloc(sizeof(int *) * k);      
+    int num_entries = 1 << k;
+    int tbl[num_entries];
+    int **co_elem = malloc(sizeof(int *) * k);
     genes = malloc(sizeof(int) * k);
     for (i = 0; i < k; i++) genes[i] = (int) PyLong_AsLong (PyList_GetItem(py_genes, i));
     A = mut_data_allocate(numPatients, numGenes);
     init_mutation_data (A, numPatients, numGenes,
                         patients2mutatedGenes, gene2numMutations);
 
-    contingency_tbl_gen(A, k, tbl, genes); 
+    contingency_tbl_gen(A, k, tbl, genes);
 
-    for (i=0; i< k; i++){    
-      co_elem[i] = get_co_cells(i+1);    
+    for (i=0; i< k; i++){
+      co_elem[i] = get_co_cells(i+1);
     }
-    
+
     comet_phi(genes, k, numPatients, A, tbl, co_elem, &score, &func, coCutoff, numPermutations, binomPvalthresh, exactPvalthresh);
 
     result = Py_BuildValue("di", score, func);
@@ -125,45 +125,45 @@ PyObject *py_comet_phi(PyObject *self, PyObject *args){
       if(co_elem[i] != NULL) free(co_elem[i]);
     return result;
 
-    
+
 }
 
 /* the permutation test, callable from Python given required information*/
 PyObject *py_permutation_test(PyObject *self, PyObject *args){
     int i, k, numPatients, numGenes, numPermutations, permute_count; // parameters
     PyObject *py_genes, *patients2mutatedGenes, *gene2numMutations, *result;
-    mutation_data_t *A;    
-    
+    mutation_data_t *A;
+
     /* Parse Python arguments */
-    if (! PyArg_ParseTuple( args, "iiiO!O!iO!", &k, &numGenes, &numPatients, 
-                            &PyList_Type, &patients2mutatedGenes, &PyList_Type, &gene2numMutations, 
+    if (! PyArg_ParseTuple( args, "iiiO!O!iO!", &k, &numGenes, &numPatients,
+                            &PyList_Type, &patients2mutatedGenes, &PyList_Type, &gene2numMutations,
                             &numPermutations, &PyList_Type, &py_genes)) {
         return NULL;
     }
-    int num_entries = 1 << k;  
-    int tbl[num_entries];  
-    int *freq = malloc(sizeof(int) * k);      
+    int num_entries = 1 << k;
+    int tbl[num_entries];
+    int *freq = malloc(sizeof(int) * k);
     int *genes = malloc(sizeof(int) * k);
     for (i = 0; i < k; i++) genes[i] = (int) PyLong_AsLong (PyList_GetItem(py_genes, i));
     A = mut_data_allocate(numPatients, numGenes);
     init_mutation_data (A, numPatients, numGenes,
                         patients2mutatedGenes, gene2numMutations);
 
-    contingency_tbl_gen(A, k, tbl, genes); 
+    contingency_tbl_gen(A, k, tbl, genes);
 
-    for (i=0; i< k; i++){    
+    for (i=0; i< k; i++){
       freq[i] = A->G2numMuts[genes[i]];
     }
-    permute_count = comet_permutation_test(k, numPermutations, numPatients, genes, freq, tbl);            
+    permute_count = comet_permutation_test(k, numPermutations, numPatients, genes, freq, tbl);
 
     result = Py_BuildValue("d", permute_count/numPermutations);
     free(tbl);
     free(genes);
     free(freq);
-    
+
     return result;
 
-    
+
 }
 
 /* The general exact test, callable from the Python driver. */
@@ -173,27 +173,27 @@ PyObject *py_exact_test(PyObject *self, PyObject *args){
   PyObject *py_tbl, *result; // FLAT Python contingency table
   int *tbl; // C contingency table
   double pvalthresh;
-  
+
   // Computation variables
   double final_p_value;
   int final_num_tbls;
-  
+
   int num_entries, i; // Helper variables
-  
+
   // Parse parameters
   if (! PyArg_ParseTuple( args, "iiO!d", &k, &N, &PyList_Type, &py_tbl, &pvalthresh ))
     return NULL;
-  
+
   // Convert PyList into C array
-  num_entries = 1 << k; 
+  num_entries = 1 << k;
   tbl = malloc(sizeof(int) * num_entries);
-  
+
   for (i=0; i < num_entries; i++)
     tbl[i] = (int) PyLong_AsLong (PyList_GetItem(py_tbl, i));
-  
-  final_p_value = comet_exact_test(k, N, tbl, &final_num_tbls, pvalthresh); 
+
+  final_p_value = comet_exact_test(k, N, tbl, &final_num_tbls, pvalthresh);
   result = Py_BuildValue("id", final_num_tbls, final_p_value);
-  
+
   free(tbl);
   return result;
 
@@ -206,26 +206,26 @@ PyObject *py_binomial_test(PyObject *self, PyObject *args){
   PyObject *py_tbl, *result; // FLAT Python contingency table
   int *tbl; // C contingency table
   double pvalthresh;
-  
+
   // Computation variables
   double final_p_value;
-  
+
   int num_entries, i; // Helper variables
-  
+
   // Parse parameters
   if (! PyArg_ParseTuple( args, "iiO!d", &k, &N, &PyList_Type, &py_tbl, &pvalthresh ))
     return NULL;
-  
+
   // Convert PyList into C array
-  num_entries = 1 << k; 
+  num_entries = 1 << k;
   tbl = malloc(sizeof(int) * num_entries);
-  
+
   for (i=0; i < num_entries; i++)
     tbl[i] = (int) PyLong_AsLong (PyList_GetItem(py_tbl, i));
-  
-  final_p_value = comet_binomial_test(k, N, tbl, pvalthresh); 
+
+  final_p_value = comet_binomial_test(k, N, tbl, pvalthresh);
   result = Py_BuildValue("d", final_p_value);
-  
+
   free(tbl);
   return result;
 
@@ -237,27 +237,27 @@ PyObject *py_load_precomputed_scores(PyObject *self, PyObject *args){
   double score;
   PyObject *py_set; // FLAT Python contingency table
   int size, func, i; // Helper variables
-  
+
   // Parse parameters
   if (! PyArg_ParseTuple( args, "diiO!", &score, &size, &func, &PyList_Type, &py_set))
     return NULL;
-  
+
   geneset_t *key;
   weight_t *w;
   // Generate the key by sorting the arr
   key = malloc( sizeof(geneset_t) );
   memset(key, 0, sizeof(geneset_t));
-  for (i = 0; i < size; i++) key->genes[i] = (int) PyLong_AsLong (PyList_GetItem(py_set, i));  
+  for (i = 0; i < size; i++) key->genes[i] = (int) PyLong_AsLong (PyList_GetItem(py_set, i));
   qsort(key->genes, size, sizeof(int), ascending);
 
   // Try and find the geneset
-  HASH_FIND(hh, weightHash, key, sizeof(geneset_t), w);  /* id already in the hash? */  
+  HASH_FIND(hh, weightHash, key, sizeof(geneset_t), w);  /* id already in the hash? */
   if (w == NULL) {
     w = malloc(sizeof(weight_t));
     w->id = *key;
     w->weight = score;
     w->function = func;
-    HASH_ADD( hh, weightHash, id, sizeof(geneset_t), w );  /* id: name of key field */    
+    HASH_ADD( hh, weightHash, id, sizeof(geneset_t), w );  /* id: name of key field */
   }
   return Py_BuildValue(""); // returns NULL
 }
@@ -276,7 +276,7 @@ PyObject *py_comet(PyObject *self, PyObject *args){
   /* Parse Python arguments */
   if (! PyArg_ParseTuple( args, "iiiO!O!O!iiiidO!idi", &t, &numGenes, &numPatients,
                           &PyList_Type, &patients2mutatedGenes, &PyList_Type, &gene2numMutations, &PyList_Type, &ks,
-                          &num_iterations, &step_len, &amp, &nt, &binom_pvalthreshold, &PyList_Type, &initial_soln, 
+                          &num_iterations, &step_len, &amp, &nt, &binom_pvalthreshold, &PyList_Type, &initial_soln,
                           &subtype_size, &pvalthresh, &verbose)) {
     return NULL;
   }
@@ -284,16 +284,16 @@ PyObject *py_comet(PyObject *self, PyObject *args){
 
   mutation_data_t *A = mut_data_allocate(numPatients, numGenes);
   init_mutation_data (A, numPatients, numGenes, patients2mutatedGenes, gene2numMutations);
-  
+
   ks_c = malloc(sizeof(int) * t);
-  for (i = 0; i < t; i++){ 
+  for (i = 0; i < t; i++){
     ks_c[i] = (int) PyLong_AsLong(PyList_GetItem(ks, i));
   }
 
   initial_soln_c = malloc(sizeof(int) * PyList_Size(initial_soln));
-  for (i = 0; i < PyList_Size(initial_soln); i++){   
+  for (i = 0; i < PyList_Size(initial_soln); i++){
     initial_soln_c[i] = (int) PyLong_AsLong(PyList_GetItem(initial_soln, i));
-  }  
+  }
 
   // Allocate memory for the gene sets
   numFrozen = num_iterations / step_len;
@@ -306,17 +306,17 @@ PyObject *py_comet(PyObject *self, PyObject *args){
     functions[i] = malloc(sizeof(int) * t);
   }
 
-  int *group_index_sum;    
+  int *group_index_sum;
   group_index_sum = malloc(sizeof(int) * t);
   for (i=0; i < t; i++){
-    group_index_sum[i] = sum_array(ks_c, 0, i); 
-    
+    group_index_sum[i] = sum_array(ks_c, 0, i);
+
   }
   // Run the MCMC
   printf("Start runnning MCMC in C... \n");
   comet_mcmc(A, numGenes, numPatients, ks_c, t, num_iterations, step_len, amp, nt, binom_pvalthreshold, initial_soln_c, PyList_Size(initial_soln), subtype_size, pvalthresh, gene_sets, weights, functions, verbose);
   printf("End runnning MCMC in C... \n");
-  
+
   // Convert the gene sets identified into Python objects
   solns = PyList_New(numFrozen);
   for (i = 0; i < numFrozen; i++){
@@ -340,16 +340,16 @@ PyObject *py_comet(PyObject *self, PyObject *args){
   mut_data_free(A);
   free(group_index_sum);
   free(ks_c);
-  free(initial_soln_c);  
+  free(initial_soln_c);
 
   for (i = 0; i < numFrozen; i++){
     free(gene_sets[i]);
     free(weights[i]);
     free(functions[i]);
   }
-  
+
   // Return results!
-  return Py_BuildValue("O", solns); 
+  return Py_BuildValue("O", solns);
 }
 
 /******************************************************************************
@@ -359,10 +359,10 @@ PyMethodDef CoMEtMethods[] = {
     {"exhaustive", py_exhaustive, METH_VARARGS, ""},
     {"set_weight", py_set_weight, METH_VARARGS, ""},
     {"exact_test", py_exact_test, METH_VARARGS, "Computes Dendrix++ exact test."},
-    {"binom_test", py_binomial_test, METH_VARARGS, "Computes Dendrix++ exact test."},    
-    {"permutation_test", py_permutation_test, METH_VARARGS, "Computes Dendrix++ exact test."},    
-    {"comet_phi", py_comet_phi, METH_VARARGS, "Computes comet score (phi) from three tests."},    
-    {"comet", py_comet, METH_VARARGS, "Computes Dendrix++ in MCMC."},    
+    {"binom_test", py_binomial_test, METH_VARARGS, "Computes Dendrix++ exact test."},
+    {"permutation_test", py_permutation_test, METH_VARARGS, "Computes Dendrix++ exact test."},
+    {"comet_phi", py_comet_phi, METH_VARARGS, "Computes comet score (phi) from three tests."},
+    {"comet", py_comet, METH_VARARGS, "Computes Dendrix++ in MCMC."},
     {"precompute_factorials", py_precompute_factorials, METH_VARARGS, "Precomputes factorials for 0...N"},
     {"load_precomputed_scores", py_load_precomputed_scores, METH_VARARGS, "Loading precomputed scores from file"},
     {"free_factorials", free_factorials, METH_NOARGS, "Frees memory used for factorials"},
@@ -376,5 +376,3 @@ PyMODINIT_FUNC initcComet(void) {
         return;
     }
 }
-
-
