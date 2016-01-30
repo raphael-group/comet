@@ -3,7 +3,7 @@
 ###############################################################################
 # Functions for loading mutation data
 def load_mutation_data(filename, patientFile=None, geneFile=None, minFreq=0, subtypeFile=None):
-    """Loads the mutation data in the given file. 
+    """Loads the mutation data in the given file.
 
     :type filename: string
     :param filename: Location of mutation data file.
@@ -22,19 +22,13 @@ def load_mutation_data(filename, patientFile=None, geneFile=None, minFreq=0, sub
       * **patientToGenes** (*dictionary*) - mapping of patients to the genes they have mutated.
       * **subtypes** (*list*) - list of unique subtypes.
     """
-    # Load the whitelists (if applicable)
+    # Load the patient whitelist (if applicable)
     if patientFile:
         with open(patientFile) as f:
             patients = set( l.rstrip().split()[0] for l in f if not l.startswith("#") )
     else:
         patients = None
 
-    if geneFile:
-        with open(geneFile) as f:
-            genes = set( l.rstrip().split()[0] for l in f if not l.startswith("#") )
-    else:
-        genes = set()
-        
     # Load the subtype information (if applicable)
     from collections import defaultdict
     subtypeDict = defaultdict( lambda: None, dict() )
@@ -48,6 +42,14 @@ def load_mutation_data(filename, patientFile=None, geneFile=None, minFreq=0, sub
                 subtypeDict[p] = s
                 subtypes.add( s )
 
+    # Load the gene whitelist (if applicable)
+    if geneFile:
+        with open(geneFile) as f:
+            genes = set( l.rstrip().split()[0] for l in f if not l.startswith("#") )
+        genes |= subtypes
+    else:
+        genes = set()
+
     # Parse the mutation matrix
     geneToCases, patientToGenes = defaultdict(set), defaultdict(set)
     with open(filename) as f:
@@ -56,11 +58,11 @@ def load_mutation_data(filename, patientFile=None, geneFile=None, minFreq=0, sub
             patient, mutations = arr[0], set(arr[1:])
 
             if subtypeDict[patient]:
-                mutations = mutations.union( subtypes.difference( set([subtypeDict[patient]]) ) )
+                mutations = mutations.union( subtypes.difference( set( [subtypeDict[patient]] ) ) )
 
             if not patients or patient in patients:
                 if genes: mutations &= genes
-                #else: genes |= mutations                
+                #else: genes |= mutations
 
                 patientToGenes[patient] = mutations
                 for gene in mutations:
@@ -78,13 +80,13 @@ def load_mutation_data(filename, patientFile=None, geneFile=None, minFreq=0, sub
     # Format and return output
     genes, patients = geneToCases.keys(), patientToGenes.keys()
     m, n = len(genes), len(patients)
-    return m, n, genes, patients, geneToCases, patientToGenes
+    return m, n, genes, patients, geneToCases, patientToGenes, subtypes
 
 
 def adj_dict_to_lists(xs, ys, d):
     """Convert a dictionary of x -> y to a list of lists, where
        each x corresponds to a list of indices of y."""
-    M = []    
+    M = []
     for x, y_list in d.iteritems():
         M.append( [ ys.index(y) for y in y_list ] )
     return M
@@ -92,16 +94,16 @@ def adj_dict_to_lists(xs, ys, d):
 def convert_mutations_to_C_format(m, n, genes, patients, geneToCases, patientToGenes, subtypes=None):
     """We convert the dictionaries to list of lists so they're easier to parse in C."""
 
-    if subtypes: 
+    if subtypes:
         newg = set(genes).difference(set(subtypes))
         genes = list(newg)
         for s in subtypes:
             genes.append(s)
         #genes += subtypes
-        
+
     geneToIndex = dict(zip(genes, range(m)))
     indexToGene = dict(zip(range(m), genes))
     iPatientToGenes = adj_dict_to_lists(patients, genes, patientToGenes)
     iGeneToCases = adj_dict_to_lists(genes, patients, geneToCases)
     geneToNumCases = [ len(geneToCases[g]) for g in genes ]
-    return iPatientToGenes, iGeneToCases, geneToNumCases, geneToIndex, indexToGene, subtypes
+    return iPatientToGenes, iGeneToCases, geneToNumCases, geneToIndex, indexToGene

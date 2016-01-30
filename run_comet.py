@@ -252,6 +252,7 @@ def run( args ):
 	# Load the mutation data
     mutations = C.load_mutation_data(mutationMatrix, patientFile, geneFile, minFreq, subtypeFile)
     m, n, genes, patients, geneToCases, patientToGenes, subtypes = mutations
+    mutations = ( m, n, genes, patients, geneToCases, patientToGenes )
 
     if args.core_events:
         with open(args.core_events) as f:

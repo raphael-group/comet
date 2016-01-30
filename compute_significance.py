@@ -289,6 +289,8 @@ def get_parser():
                             help='File mapping genes/events to new names (optional).')
 	parser.add_argument('-st', '--sample_types_file', default=None,
                             help='File mapping samples to cancer types.')
+	parser.add_argument('-sub', '--subtype', default=None,
+														help='File with a list of subtype for performing subtype-comet.')
         
 	# Marginal probability graph
 	parser.add_argument('-mew', '--minimum_edge_weight', type=float, default=0.001,
@@ -310,6 +312,7 @@ def run( args ):
 	geneFile       = args.gene_file
 	patientFile    = args.patient_file
 	eventNamesFile = args.event_names
+	subtypeFile	   = args.subtype
 	minFreq        = args.min_freq
 	msf            = args.minimum_sampling_frequency
 	inputFile      = args.input_file
@@ -318,8 +321,9 @@ def run( args ):
 	mew            = args.minimum_edge_weight
 
 	# Load the mutation data
-	mutations  = C.load_mutation_data(mutationMatrix, patientFile, geneFile, minFreq)
-	m, n, genes, patients, geneToCases, patientToGenes = mutations
+	mutations  = C.load_mutation_data(mutationMatrix, patientFile, geneFile, minFreq, subtypeFile)
+	m, n, genes, patients, geneToCases, patientToGenes, subtypes = mutations
+	mutations = ( m, n, genes, patients, geneToCases, patientToGenes )
 	eventNames = load_event_names(eventNamesFile, genes)
 
 	###########################################################################
