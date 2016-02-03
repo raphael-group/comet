@@ -137,6 +137,8 @@ def output_comet_viz(args, mutations, resultsTable, maxPermutedWeight, permutedN
 	shutil.copyfile("comet/src/js/bower.json", "{}/bower.json".format(vizOutput))
 	shutil.copyfile("comet/src/css/style.css", "{}/style.css".format(vizOutput))
 
+###############################################################################
+# Delta selection functions
 
 def delta_plot(N, deltas, realEdgeDist, outfile, boundEdges, deltaPoint, edgeno):
 	import matplotlib
@@ -286,6 +288,51 @@ def nCr(n,r):
 	""" n choose r """
 	return factorial(n) / factorial(r) / factorial(n-r)
 
+def gd3_mutation_data(m, n, genes, patients, geneToCases, patientToGenes,
+					  genespace, eventNames, sampleToType=None):
+	# Sample information (TODO: More elegant solution later)
+	if sampleToType:
+		typeToSamples = dict( (t, set()) for t in set(sampleToType.values()))
+		for sample, ty in sampleToType.iteritems():
+			if sample in patients:
+				typeToSamples[ty].add( sample )
+		typeToSamples = dict( (t, list(s)) for t, s in typeToSamples.iteritems() )
+		sampleToTypes = sampleToType
+	else:
+		typeToSamples = dict(Cancer=patients)
+		sampleToTypes = dict((p, "Cancer") for p in patients)
+		sampleTypes = ["Cancer"]
+
+	# Create a mutation matrix in GD3 format
+	M = {}
+	for g in genespace:
+		# Determine the type of variant we're looking at
+		if "(A)" in g: sym = "amp"
+		elif "(D)" in g: sym = "del"
+		else: sym = "snv"
+
+		name = eventNames[g]
+		if name in M: muts = M[name]
+		else: muts = {}
+		for p in geneToCases[g]:
+			if p in muts: muts[p].append(sym)
+			else: muts[p] = [sym]
+		M[name] = muts
+
+	return dict(M=M, sampleToTypes=sampleToTypes, typeToSamples=typeToSamples)
+
+def gd3_graph(MPG, eventNames, minEdgeWeight):
+	nodes = MPG.nodes()
+	edges = [ dict(source=nodes.index(u), target=nodes.index(v), weight=d['weight'])
+			  for u, v, d in MPG.edges(data=True) if d['weight'] >= minEdgeWeight ]
+	edges.sort(key=lambda d: d['weight'], reverse=True)
+	nodes = [ dict(name=eventNames[n]) for n in nodes ]
+	weights = sorted([ d['weight'] for d in edges ])
+	return dict(nodes=nodes, edges=edges, weights=weights)
+
+###############################################################################
+# Construct marginal prob. graph
+
 def construct_mp_graph(resultsTable, eventNames, minSamplingFreq, maxPWeight):
 	""" Construct marginal prob. graph from collections with weight larger than permuted data (maxPWeight) """
 	""" Using genesets with the maximum weight to generate expected number of nodes in the graph for delta selection """
@@ -341,45 +388,5 @@ def extract_relevant_edges(edges, minEdgeWeight):
 
 	return sorted(weightToEdges.keys(), reverse=True), weightToEdges
 
-def gd3_mutation_data(m, n, genes, patients, geneToCases, patientToGenes,
-					  genespace, eventNames, sampleToType=None):
-	# Sample information (TODO: More elegant solution later)
-	if sampleToType:
-		typeToSamples = dict( (t, set()) for t in set(sampleToType.values()))
-		for sample, ty in sampleToType.iteritems():
-			if sample in patients:
-				typeToSamples[ty].add( sample )
-		typeToSamples = dict( (t, list(s)) for t, s in typeToSamples.iteritems() )
-		sampleToTypes = sampleToType
-	else:
-		typeToSamples = dict(Cancer=patients)
-		sampleToTypes = dict((p, "Cancer") for p in patients)
-		sampleTypes = ["Cancer"]
 
-	# Create a mutation matrix in GD3 format
-	M = {}
-	for g in genespace:
-		# Determine the type of variant we're looking at
-		if "(A)" in g: sym = "amp"
-		elif "(D)" in g: sym = "del"
-		else: sym = "snv"
-
-		name = eventNames[g]
-		if name in M: muts = M[name]
-		else: muts = {}
-		for p in geneToCases[g]:
-			if p in muts: muts[p].append(sym)
-			else: muts[p] = [sym]
-		M[name] = muts
-
-	return dict(M=M, sampleToTypes=sampleToTypes, typeToSamples=typeToSamples)
-
-def gd3_graph(MPG, eventNames, minEdgeWeight):
-	nodes = MPG.nodes()
-	edges = [ dict(source=nodes.index(u), target=nodes.index(v), weight=d['weight'])
-			  for u, v, d in MPG.edges(data=True) if d['weight'] >= minEdgeWeight ]
-	edges.sort(key=lambda d: d['weight'], reverse=True)
-	nodes = [ dict(name=eventNames[n]) for n in nodes ]
-	weights = sorted([ d['weight'] for d in edges ])
-	return dict(nodes=nodes, edges=edges, weights=weights)
 

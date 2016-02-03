@@ -165,8 +165,7 @@ def run( args ):
     acc = args.accelerator
     nt = args.nt
     hybridCutoff = args.binom_cut
-    NInc = 1.5                 # increamental for non-converged chain
-    tc   = 1
+    NInc = 1.5                 # increamental for non-converged chain    
 
 	# Load the mutation data
     mutations = C.load_mutation_data(mutationMatrix, patientFile, geneFile, minFreq, subtypeFile)

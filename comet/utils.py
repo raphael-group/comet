@@ -1,4 +1,6 @@
 
+###############################################################################
+# Convert sampling solns to the output format
 def convert_solns(indexToGene, solns):
     newSolns = []
     for arr in solns:
@@ -10,7 +12,10 @@ def convert_solns(indexToGene, solns):
 
     return newSolns
 
+###############################################################################
+# Generate initial solutions 
 
+# Call multi-dendrix to obtaining initial solns
 def call_multidendrix(multi_dendrix, mutations, k, t):
     alpha, delta, lmbda = 1.0, 0, 1 # default of multidendrix
     geneSetsWithWeights = multi_dendrix.ILP( mutations, t, k, k, alpha, delta, lmbda)    
@@ -54,8 +59,7 @@ def initial_solns_generator(r, mutations, ks, assignedInitSoln, subtype, importM
 
     return runInit, totalOut
 
-
-
+# Load precomputed scores from input file  (--precomputed_scores)
 def load_precomputed_scores(infile, mutations, subt):
 
     if subt: mutations = mutations + (subt,)
@@ -77,8 +81,8 @@ def load_precomputed_scores(infile, mutations, subt):
                 C.load_precomputed_scores(float(v[baseI + j + 1]), len(v[baseI + j].split(", ")), int(v[baseI + j + 2]), gSet)
                 j += setI
 
-
-
+###############################################################################
+# Merge results
 def merge_results(convResults):
     total = dict()
     for results in convResults:
