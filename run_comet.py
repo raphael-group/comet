@@ -254,6 +254,7 @@ def run( args ):
     m, n, genes, patients, geneToCases, patientToGenes, subtypes = mutations
     mutations = ( m, n, genes, patients, geneToCases, patientToGenes )
 
+    # Core event list is merged with the list of subtypes, since both are known to be mutually exclusive
     if args.core_events:
         with open(args.core_events) as f:
             subSet = list( subtypes.union( set( [ l.rstrip() for l in f ] ) ) )

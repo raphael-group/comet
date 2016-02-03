@@ -58,11 +58,10 @@ def load_mutation_data(filename, patientFile=None, geneFile=None, minFreq=0, sub
             patient, mutations = arr[0], set(arr[1:])
 
             if subtypeDict[patient]:
-                mutations = mutations.union( subtypes.difference( set( [subtypeDict[patient]] ) ) )
+                mutations |= set( s for s in subtypes if subtypeDict[patient] != s )
 
             if not patients or patient in patients:
                 if genes: mutations &= genes
-                #else: genes |= mutations
 
                 patientToGenes[patient] = mutations
                 for gene in mutations:
