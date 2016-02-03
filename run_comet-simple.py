@@ -25,11 +25,6 @@ def get_parser():
     # General parameters
     parser.add_argument('-o', '--output_dir', required=True,
                         help='Output directory.')
-    parser.add_argument('-v', '--verbose', default=True, action="store_true",
-                        help='Flag verbose output.')
-    parser.add_argument('--seed', default=int(time.time()), type=int,
-                        help='Set the seed of the PRNG.')
-
     # Mutation data
     parser.add_argument('-m', '--mutation_matrix', required=True,
                         help='File name for mutation data.')
@@ -39,9 +34,10 @@ def get_parser():
                         help='File of patients to be included (optional).')
     parser.add_argument('-gf', '--gene_file', default=None,
                         help='File of genes to be included (optional).')
-    # Comet
+    # CoMEt 
     parser.add_argument('-ks', '--gene_set_sizes', nargs="*", type=int, required=True,
                         help='Gene set sizes (length must be t). This or -k must be set. ')
+    # CoMEt MCMC
     parser.add_argument('-N', '--num_iterations', type=int, default=pow(10, 3),
                         help='Number of iterations of MCMC.')
     parser.add_argument('-NStop', '--n_stop', type=int, default=pow(10, 8),
@@ -50,38 +46,55 @@ def get_parser():
                         help='Number of iterations between samples.')
     parser.add_argument('-init', '--initial_soln', nargs="*",
                         help='Initial solution to use.')
-    parser.add_argument('-acc', '--accelerator', default=1, type=int,
-                        help='accelerating factor for target weight')
-    parser.add_argument('-sub', '--subtype', default=None,
-                        help='File with a list of subtype for performing subtype-comet.')
-    parser.add_argument('-ce', '--core_events', default=None,
-                        help='File with a list of core events for performing subtype-comet.')
     parser.add_argument('-r', '--num_initial', default=1, type=int,
                         help='Number of different initial starts to use with MCMC.')
+    parser.add_argument('-tv', '--total_distance_cutoff', type=float, default=0.005,
+                        help='stop condition of convergence (total distance).')
+    
+    # Parameters for determining the test to be applied in CoMEt
     parser.add_argument('--exact_cut', default=0.001, type=float,
                         help='Maximum accumulated table prob. to stop exact test.')
     parser.add_argument('--binom_cut', type=float, default=0.005,
                         help='Minumum pval cutoff for CoMEt to perform binom test.')
     parser.add_argument('-nt', '--nt', default=10, type=int,
                         help='Maximum co-occurrence cufoff to perform exact test.')
-    parser.add_argument('-tv', '--total_distance_cutoff', type=float, default=0.005,
-                        help='stop condition of convergence (total distance).')
-    parser.add_argument('--precomputed_scores', default=None,
-                        help='input file with lists of pre-run results.')
-
+    
+    # Files for subtypes/core-events run
+    parser.add_argument('-sub', '--subtype', default=None,
+                        help='File with a list of subtype for performing subtype-comet.')
+    parser.add_argument('-ce', '--core_events', default=None,
+                        help='File with a list of core events for performing subtype-comet.')
+    
+    
+    # Hidden parameters: users can still use these parameters but they won't show in the options    
     # Parameters for marginal probability graph (optional)
-    parser.add_argument('-e', '--event_names', default=None,
-                            help='File mapping genes/events to new names (optional).')
-    parser.add_argument('-st', '--sample_types_file', default=None,
-                            help='File mapping samples to cancer types.')
+    # File mapping genes/events to new names (optional).
+    parser.add_argument('-e', '--event_names', default=None, help=argparse.SUPPRESS)
+    # File mapping samples to cancer types.
+    parser.add_argument('-st', '--sample_types_file', default=None, help=argparse.SUPPRESS)
+    # Minimum edge weight for showing in the graph
     parser.add_argument('-mew', '--minimum_edge_weight', type=float, default=0.001,
-                            help='Minimum edge weight.')
+                            help=argparse.SUPPRESS)
+    # Minimum sampling frequency for a gene set to be included.
     parser.add_argument('-msf', '--minimum_sampling_frequency', type=float, default=50,
-                            help='Minimum sampling frequency for a gene set to be included.')
+                            help=argparse.SUPPRESS)
+    # Template file (HTML). Change at your own risk.
     parser.add_argument('-tf', '--template_file', default="comet/src/html/template.html",
-                            type=str, help='Template file (HTML). Change at your own risk.')
+                            type=str, help=argparse.SUPPRESS)
+    # Maximum standard error cutoff to consider a line
     parser.add_argument('-rmse', '--standard_error_cutoff', default=0.01, type=float,
-                            help='maximum standard error cutoff to consider a line')
+                            help=argparse.SUPPRESS)   
+    # Input file with lists of pre-run results.
+    parser.add_argument('--precomputed_scores', default=None, help=argparse.SUPPRESS)
+    # Accelerating factor for target weight
+    parser.add_argument('-acc', '--accelerator', default=1, type=int, help=argparse.SUPPRESS)
+    # Flag verbose output
+    parser.add_argument('-v', '--verbose', default=True, action="store_true",
+                        help=argparse.SUPPRESS)
+    # Set the seed of the PRNG.
+    parser.add_argument('--seed', default=int(time.time()), type=int,
+                        help=argparse.SUPPRESS)
+
 
     return parser
 
