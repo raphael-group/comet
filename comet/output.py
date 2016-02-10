@@ -35,12 +35,9 @@ def output_comet(args, mutations, results, collections, ks, runNum, maxPermutedW
 			row += [", ".join(sorted(d["genes"])), d["prob"], weight_func_mapping[d["num_tbls"]] ]
 		tbl.append("\t".join(map(str, row)))
 
-	ensure_dir(args.output_dir)
-
-	outputDirResults = args.output_dir + "/results/"
-	outputDirViz = args.output_dir + "/viz/"
+	ensure_dir(args.output_directory)
+	outputDirResults = args.output_directory + "/results/"	
 	ensure_dir(outputDirResults)
-	ensure_dir(outputDirViz)
 
 	# output results 
 	fPrefix =  outputDirResults + iter_num('comet', runNum, ks, args.accelerator)	
@@ -48,21 +45,24 @@ def output_comet(args, mutations, results, collections, ks, runNum, maxPermutedW
 	with open(outputFile, "w") as outfile: outfile.write( "\n".join(tbl) )
 	paraJson = "%s.json" % fPrefix
 	with open(paraJson, "w") as outfile: json.dump(vars(args), outfile)
-	
-	output_comet_viz(args, mutations, tbl, maxPermutedWeight, permutedN)
+
+	if args.noviz:
+		outputDirViz = args.output_directory + "/viz/"
+		ensure_dir(outputDirViz)
+		output_comet_viz(args, mutations, tbl, maxPermutedWeight, permutedN)
 
 def output_comet_viz(args, mutations, resultsTable, maxPermutedWeight, permutedN):
 
-	mutationMatrix   = args.mutation_matrix
-	geneFile         = args.gene_file
-	patientFile      = args.patient_file
-	minFreq          = args.min_freq
+	#mutationMatrix   = args.mutation_matrix
+	#geneFile         = args.gene_file
+	#patientFile      = args.patient_file
+	#minFreq          = args.min_freq
 	eventNamesFile   = args.event_names  	
 	sampleToTypeFile = args.sample_types_file
 	msf              = args.minimum_sampling_frequency 
 	sec              = args.standard_error_cutoff 
 	mew              = args.minimum_edge_weight 
-	vizOutput        = args.output_dir +  "/viz"
+	vizOutput        = args.output_directory +  "/viz"
 
 	# Load the mutation data
 	#mutations  = C.load_mutation_data(mutationMatrix, patientFile, geneFile, minFreq)

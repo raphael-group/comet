@@ -23,7 +23,7 @@ def get_parser():
     parser = argparse.ArgumentParser(description=description)
 
     # General parameters
-    parser.add_argument('-o', '--output_dir', required=True,
+    parser.add_argument('-o', '--output_directory', required=True,
                         help='Output directory.')
     # Mutation data
     parser.add_argument('-m', '--mutation_matrix', required=True,
@@ -94,6 +94,8 @@ def get_parser():
     # Set the seed of the PRNG.
     parser.add_argument('--seed', default=int(time.time()), type=int,
                         help=argparse.SUPPRESS)
+    # Output vizualization or not Flag viz output.
+    parser.add_argument('--noviz', action='store_false', help=argparse.SUPPRESS)
 
 
     return parser
