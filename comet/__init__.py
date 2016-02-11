@@ -55,4 +55,11 @@ def phi(k, N, tbl, exact_pvalthresh=0.001, binom_pvalthresh=0.005,
         if exact_pval != -1: # the P-value was computed exactly
             return exact_pval, EXACT
         else: # the P-value never finished
-            return py_permutation_test(k, N, tbl, num_permutations), PERMUTATIONAL
+            permutation_pval = py_permutation_test(k, N, tbl, num_permutations)
+
+            # If permutation P-value is below our current precision, we
+            # use the binomial instead
+            if permutation_pval == 0:
+                return binom_pval, BINOM
+            else:
+                return permutation_pval, PERMUTATIONAL
