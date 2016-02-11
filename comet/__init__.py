@@ -51,7 +51,7 @@ def phi(k, N, tbl, exact_pvalthresh=0.001, binom_pvalthresh=0.005,
         # If the binomial doesn't work, then try the exact test. The exact test
         # runs until either the P-value is computed, or accumulated mass
         # reaches a certain value.
-        num_tbls, exact_pval = exact_test(k, N, tbl, 1.1)
+        num_tbls, exact_pval = exact_test(k, N, tbl, exact_pvalthresh)
         if exact_pval != -1: # the P-value was computed exactly
             return exact_pval, EXACT
         else: # the P-value never finished
