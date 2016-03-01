@@ -5,6 +5,9 @@ from mutation_data import *
 from convergence import *
 from constants import *
 from permute import *
+from utils import *
+from output import *
+
 
 # There is a scipy stats function called binom_test, so we need to import
 # the CoMET C modules last
@@ -63,3 +66,4 @@ def phi(k, N, tbl, exact_pvalthresh=0.001, binom_pvalthresh=0.005,
                 return binom_pval, BINOM
             else:
                 return permutation_pval, PERMUTATIONAL
+
