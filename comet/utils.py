@@ -33,12 +33,12 @@ def initial_solns_generator(r, mutations, ks, assignedInitSoln, subtype, importM
     # Assign input solns
     if assignedInitSoln:
         if len(assignedInitSoln) == sum(ks):
-            print 'load init soln', "\t".join(assignedInitSoln)
+            #print 'load init soln', "\t".join(assignedInitSoln)
             runInit.append(assignedInitSoln)
         elif len(assignedInitSoln) < sum(ks): # fewer initials than sampling size, randomly pick from genes
             import random
             rand = assignedInitSoln + random.sample(set(mutations[2])-set(assignedInitSoln), sum(ks)-len(assignedInitSoln))
-            print 'load init soln with random', rand
+            #print 'load init soln with random', rand
         else:
             sys.stderr.write('Too many initial solns for CoMEt.\n')
             exit(1)
@@ -47,7 +47,7 @@ def initial_solns_generator(r, mutations, ks, assignedInitSoln, subtype, importM
     if importMultidendrix and not subtype and ks.count(ks[0])==len(ks):
 
         md_init = call_multidendrix(multi_dendrix, mutations, ks[0], len(ks))
-        print ' load multi-dendrix solns', md_init
+        #print ' load multi-dendrix solns', md_init
         runInit.append(list(md_init))
 
     # assign empty list to runInit as random initials

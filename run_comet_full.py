@@ -177,7 +177,7 @@ def run( args ):
     # Find the maximum test statistic on the permuted datasets
     from itertools import islice
     maxStat = 0
-    print os.listdir(directory)
+    
     for rf in [ rf for rf in os.listdir(directory) if rf.startswith("comet-results-on-permutation") ]:
         for df in [df for df in os.listdir("{}/{}/results".format(directory, rf)  ) if df.endswith(".tsv")]:            
             with open("{}/{}/results/{}".format(directory, rf, df)) as infile:

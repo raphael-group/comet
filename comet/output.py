@@ -43,7 +43,7 @@ def output_comet(args, mutations, results, collections, ks, runNum, maxPermutedW
 	fPrefix =  outputDirResults + iter_num('comet', runNum, ks, args.accelerator)	
 	outputFile = "%s.tsv" % fPrefix	
 	with open(outputFile, "w") as outfile: outfile.write( "\n".join(tbl) )
-	paraJson = "%s.json" % fPrefix
+	paraJson = "%s/params.json" % args.output_directory
 	with open(paraJson, "w") as outfile: json.dump(vars(args), outfile)
 
 	if args.noviz:
