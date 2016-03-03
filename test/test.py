@@ -7,7 +7,7 @@ if __name__ == "__main__":
 	# Load required modules
 	import sys, os, json
 	sys.path.append('../')
-	import comet as C, run_comet as RC, run_exhaustive as RE
+	import comet as C, run_comet_simple as RC, run_exhaustive as RE
 
 	# Hard-coded results of earlier runs
 	trueMCMC = [["CDK4(A),CDKN2A(D),TP53 EGFR,PDGFRA(A),PTEN(D)", 36, 30.44954813369114], ["CDK4(A),CDKN2A(D),TP53 EGFR,PTEN,PTEN(D)", 47, 30.31560877273872], ["CDK4(A),CDKN2A(D),TP53 EGFR,PDGFRA(A),RB1(D)", 6, 28.487778643951266], ["CDK4(A),CDKN2A(D),TP53 PDGFRA(A),PTEN,PTEN(D)", 2, 27.986374758844306], ["CDK4(A),CDKN2A(D),TP53 EGFR,PTEN(D),RB1(D)", 1, 27.207736477342962], ["CDK4(A),CDKN2A(D),TP53 EGFR,MDM4(A),RB1(D)", 1, 26.9059191024149], ["CDK4(A),CDKN2A(D),RB1(D) EGFR,PDGFRA(A),PTEN(D)", 3, 26.35048099140887], ["CDK4(A),CDKN2A(D),RB1(D) EGFR,PTEN,PTEN(D)", 1, 26.216541630456447], ["CDK4(A),CDKN2A(D),TP53 MDM4(A),PTEN(D),RB1(D)", 1, 24.99799710738864], ["CDK4(A),CDKN2A(D),TP53 EGFR,MDM4(A),PTEN", 1, 24.910765737533954], ["CDK4(A),CDKN2A(D),TP53 PDGFRA(A),PTEN,RB1(D)", 1, 24.633365961904023]]
@@ -17,7 +17,7 @@ if __name__ == "__main__":
 	seed = 23
 	mcmcArgs = [ "-m", "../example_datasets/gbm/GBM.m2",  "-o", "tmp-mcmc",
 				 "-g", "../example_datasets/gbm/GBM.glst", "-N", "10000",
-				 "--seed", str(seed), "-mf", "30", "-ks", "3", "3"]
+				 "--seed", str(seed), "-mf", "30", "-ks", "3", "3", "--noviz"]
 	mcmcResults = RC.run(RC.get_parser().parse_args(mcmcArgs))
 	if os.path.exists("tmp-mcmc.para.k33.10K.1.json"):
 		os.unlink("tmp-mcmc.para.k33.10K.1.json")
