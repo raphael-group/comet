@@ -43,13 +43,14 @@ We provide example data in `example_datasets/`.
 
 ### Run CoMEt ###
 
-CoMEt is run as a pipeline consisting of three steps:
+We provide two pipelines for performing CoMEt:
 
-1. **Run COMEt MCMC algorithm on real data**. Use the `run_comet.py` script to run the Markov chain Monte Carlo (MCMC) algorithm on the given mutation matrix. `run_comet.py` outputs a [JSON](http://json.org/) file that stores the parameters of the run, and a tab-separated file that lists the collections identified by CoMEt (sorted descending by sampling frequency).
-2. **Run CoMEt MCMC algorithm on permuted data**. Use the `run_comet_permutation.py` script to find the maximum weight &phi;(**M**) across permuted datasets. This step is required for computing statistical significance and identifying the consensus modules. The output of this step is a JSON file that lists the parameters of the run, and the maximum &phi;(**M**) identified on the permuted data.
-3. **Compute significance and create output web site**. Use the `compute_significance.py` script to compute the statistical significance of your results on real data. `compute_significance.py` outputs a website that can be used to visualize the results. To view the results website, download the required Javascript files (see Requirements above) and start a Python web server:
+1. **Run COMEt MCMC algorithm on real data and create output website**. Use the `run_comet_simple.py` script to run the Markov chain Monte Carlo (MCMC) algorithm on the given mutation matrix. `run_comet_simple.py` outputs a [JSON](http://json.org/) file that stores the parameters of the run, a tab-separated file that lists the collections identified by CoMEt (sorted descending by sampling frequency), and a website that can be used to visualize the results.
+2. **Run CoMEt MCMC algorithm on real data, assess the significance against permuted data, and create output website**. Use the `run_comet_full.py` script to perform CoMEt with the same output as the `run_comet_simple.py` but with significant test. This pipeline computes the collections with statistical significance and identifies the consensus modules. The output of this pipeline containsthe collections identified by CoMEt (sorted descending by sampling frequency), and a website that can be used to visualize the results.
 
-        cd OUTPUT_DIRECTORY # the output directory you provided to compute_significance.py
+To view the results website, download the required Javascript files (see Requirements above) and start a Python web server:
+
+        cd OUTPUT_DIRECTORY # the output directory you provided to run_comet_simple.py or run_comet_full.py
         bower install
         python -m SimpleHTTPServer 8000
 
