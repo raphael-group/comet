@@ -4,7 +4,7 @@
   "dependencies": {
     "jquery": "latest",
     "crossfilter": "latest",
-    "d3": "latest",
+    "d3": "3.x",
     "bootstrap": "3.x",
     "gd3": "latest",
     "DataTables": "latest"
