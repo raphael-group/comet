@@ -1,5 +1,9 @@
 # CoMEt #
 
+**We have introduced a new method, WExT, that improves on CoMEt.  As a result, CoMEt is no longer actively updated.  Please see the WExT [manuscript](https://academic.oup.com/bioinformatics/article/32/17/i736/2450792) and [GitHub repository](https://github.com/raphael-group/wext) for details.** 
+
+___
+
 CoMEt is a stochastic algorithm for identifying collections of mutually exclusive alterations in cohorts of sequenced tumor samples. CoMEt is written in Python 2.7.x, with required extensions written in C and Fortran. It was developed by the [Raphael research group](http://compbio.cs.brown.edu) in the [Department of Computer Science](http://cs.brown.edu) and [Center for Computational Molecular Biology](http://brown.edu/ccmb) at [Brown University](http://brown.edu).
 
 CoMEt identifies a collection **M** of *t* alteration sets, each of size *k*, from a binary alteration matrix. CoMEt uses a Markov chain Monte Carlo (MCMC) algorithm to sample collections in proportion to their weight &phi;(**M**). The output of CoMEt is a list of collections, each with their sampling frequency, weight, and the weight &phi;(M) of each alteration set M &isin; **M**.
